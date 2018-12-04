@@ -6,4 +6,5 @@
 
 #pragma link C++ class DDSignal+;
 #pragma link C++ class DDTreeMaker+;
+#pragma link C++ class DDCalib+;
 #endif

@@ -16,11 +16,11 @@
 class DDSignal : public TObject{
   
 private:
-  Float_t fAmp;		// amplitude
-  Float_t fT0;		// t0
-  Float_t fTOT;		// time over threshold
-  Float_t fCharge;	// charge
-  Float_t fPE;
+  Float_t fAmp;		///< Amplitude [mV]
+  Float_t fT0;		///< Time T0 [ns] 
+  Float_t fTOT;		///< Time over threshold [ns]
+  Float_t fCharge;	///< Uncalibrated charge 
+  Float_t fPE;		///< Calibrated charge [PE]
   
 public:
   DDSignal();
@@ -28,17 +28,26 @@ public:
   DDSignal(Float_t *parameters);
   ~DDSignal();
   
+  /// Sets signal amplitude in mV
   void SetAmplitude(Float_t amplitude){ fAmp = amplitude; };
+  /// Sets time T0 in ns
   void SetT0(Float_t t0){ fT0 = t0; };
+  /// Sets time over threshold in mV
   void SetTOT(Float_t tot){ fTOT = tot; };
+  /// Sets uncalibrated charge, i.e. signal integral
   void SetCharge(Float_t charge){ fCharge = charge; };
+  /// Sets calibrated charge in PE
   void SetPE(Float_t pe){ fPE = pe; };
-  
+  /// Returns signal amplitude in mV
   Float_t GetAmplitude(void){ return fAmp; };
+  /// Returns time T0 in ns
   Float_t GetT0(void){ return fT0; };
+  /// Retursns time over threshold in ns
   Float_t GetTOT(void){ return fTOT; };
-  Float_t GetCharge(void){return fCharge; };
-  Float_t GetPE(void){return fPE; };
+  /// Returns uncalibrated charge, i.e. signal integral
+  Float_t GetCharge(void){ return fCharge; };
+  /// Returns calibrated charge in PE
+  Float_t GetPE(void){ return fPE; };
   
   void SetAll(Float_t *parameters);
   void Clear(void);
