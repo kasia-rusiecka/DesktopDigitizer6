@@ -16,36 +16,30 @@ ClassImp(DDTreeMaker);
 const int gNS = 1024;	//number of samples in one signal
 
 //------------------------------------------------------------------
+/// Default constructor. 
 DDTreeMaker::DDTreeMaker(){
-  fPath            = "";
-  fCoding          = "";
-  fPolarity        = "";
-  fOption          = "";
-  fIntegrationMode = "";
-  fNch             = 0;
-  fCal0            = 1;
-  fCal1            = 1;
-  fFile            = NULL;
+  Reset();
   cout << "##### Error in DDTreeMaker Constructor! You are using default constructor." << endl;
-  cout << "##### Use normal constructor instead! DDTreeMaker(path)" << endl;
+  cout << "##### Use standard constructor instead! DDTreeMaker(path)" << endl;
 }
 //------------------------------------------------------------------
+/// Standard constructor (recommended). 
+/// \param path - path to the directory containing data for analysis
 DDTreeMaker::DDTreeMaker(TString path){
   
+  Reset();
   fPath = path;
   TString fname = path+"results.root";
   fFile = new TFile(fname,"RECREATE");
-  fCal0 = 186.6;
-  fCal1 = 185.2;
   ReadConfig(path);
   FindCoding(path);
   
   for(Int_t i=0; i<fNch; i++){
-    fSignal[i] = new DDSignal();
+    fSignal.push_back(new DDSignal());
   }
-
 }
 //------------------------------------------------------------------
+/// Default destructor.
 DDTreeMaker::~DDTreeMaker(){
   //SaveBaseLines();
   if(fFile->IsOpen()) fFile->Close();
@@ -54,43 +48,72 @@ DDTreeMaker::~DDTreeMaker(){
 Bool_t DDTreeMaker::ReadConfig(TString path){
  
   TString dummy;
+  string line;
   
   TString config_name = path+"config.txt";
   ifstream config(config_name);
+  
   if(!config.is_open()){
    cout << "##### Error in DDTreeMaker::ReadConfig! Could not open config file!" << endl;
    return kFALSE;
   }
   
-  config >> dummy >> fNch;
-  if(fNch>16){
-   cout << "##### Error in DDTreeMaker::ReadConfig! Number of analyzed channels cannot be larger than 16!" << endl; 
-   return kFALSE;
-  }
-  
-  config >> dummy >> fPolarity;
-  if(!(fPolarity=="NEGATIVE" || fPolarity=="POSITIVE")){
-   cout << "##### Error in DDTreeMaker::ReadConfig! Polarity has to be NEGATIVE or POSITIVE!" << endl;
-   return kFALSE;
-  }
-  
-  config >> dummy >> fOption;
-  
-  if(!fOption.Contains("FT") && !fOption.Contains("CF")){
-    cout << "##### Error in DDTreeMaker::ReadConfig! Incorrect option." << endl;
-  }
-  
-  config >> dummy >> fIntegrationMode >> fLimit;
-  if(!(fIntegrationMode=="LIMIT" || fIntegrationMode=="TOT")){
-   cout << "##### Error in DDTreeMaker::ReadConfig! Incorrect integration mode." << endl;
-   cout << "Possible options are: LIMIT - for fixed signal duration, TOT - for time over threshold" << endl;
-   return kFALSE;
-  }
-  
-  config >> dummy >> dummy;
-  for(Int_t i=0; i<fNch; i++){
-   config >> fChannels[i] >> fThresholds[i] >> fFractions[i]; 
-   fThresholds[i] = fThresholds[i]/4.096;
+  while(!config.eof()){
+   
+    config >> dummy;
+    
+    if(dummy.Contains("NCH")){
+     config >> fNch;
+     if(fNch>16){
+      cout << "##### Error in DDTreeMaker::ReadConfig()!" << endl;
+      cout << "Number of channels cannot be larger than 16!" << endl;
+      return kFALSE;
+     }
+     fChannels.reserve(fNch);
+     fCalib.reserve(fNch);
+     fThresholds.reserve(fNch);
+     fFractions.reserve(fNch);
+    }
+    else if(dummy.Contains("POL")){
+     config >> fPolarity;
+     if(!(fPolarity=="NEGATIVE" || fPolarity=="POSITIVE")){
+      cout << "##### Error in DDTreeMaker::ReadConfig()!" << endl;
+      cout << "Unknown signal polarity!" << endl;
+      return kFALSE;
+     }
+    }
+    else if(dummy.Contains("OPT")){
+     config >> fOption;
+     if(!fOption.Contains("FT") && !fOption.Contains("CF")){
+      cout << "##### Error in DDTreeMaker::ReadConfig!" << endl;
+      cout << "Unknown analysis mode!" << endl;
+      return kFALSE;
+      }
+    }
+    else if(dummy.Contains("INT")){
+     config >> fIntegrationMode; 
+     if(!(fIntegrationMode=="LIMIT" || fIntegrationMode=="TOT")){
+       cout << "##### Error in DDTreeMaker::ReadConfig!" << endl;
+       cout << "Unknown integration mode!" << endl;
+       return kFALSE;
+     }
+     if(fIntegrationMode=="LIMIT"){
+       config >> fLimit;
+     }
+    }
+    else if(dummy.Contains("CH_LIST")){
+     getline(config,line);
+     for(Int_t i=0; i<fNch; i++){
+      config >> fChannels[i] >> fCalib[i] 
+             >> fThresholds[i] >> fFractions[i];
+      fThresholds[i] = fThresholds[i]/4.096;	//recalculating from ADC channels to mV   
+       }
+    }
+    else{
+     cout << "##### Warning in DDTreeMaker::ReadConfig()!" << endl;
+     cout << "Unknown syntax, skipping line" << endl;
+     getline(config,line);
+    }
   }
   
   config.close();
@@ -98,6 +121,8 @@ Bool_t DDTreeMaker::ReadConfig(TString path){
   return kTRUE;
 }
 //------------------------------------------------------------------
+/// Checks data files coding: BINARY or ASCI.
+/// \param path - path to the directory containing data files.
 Bool_t DDTreeMaker::FindCoding(TString path){
  
   TString fname_binary = path+Form("wave_%i.dat",fChannels[0]);
@@ -114,7 +139,7 @@ Bool_t DDTreeMaker::FindCoding(TString path){
     input_ascii.close();
   }
   else{
-   cout << "\n\n##### Error in DDTreeMaker constructor! Unknown file coding!\n\n" << endl;
+   cout << "\n\n##### Error in DDTreeMaker::FindCoding()! Unknown file coding!\n\n" << endl;
    return kFALSE;
   }
   
@@ -123,8 +148,10 @@ Bool_t DDTreeMaker::FindCoding(TString path){
 //------------------------------------------------------------------
 Bool_t DDTreeMaker::MakeTree(void){
   
-  TString bname;
-  Int_t entries = 0;
+  TString bname;	//branch name
+  Int_t entries = 0;	//number of entries in the tree
+  
+  fBranch.reserve(fNch);
   
   if(fOption.Contains("FT")){
     
@@ -190,31 +217,30 @@ Bool_t DDTreeMaker::AnalyzeChannel(Int_t index, TString mode){
    return kFALSE;
   }
     
-  Double_t line, sigma;  
-  //FindBaseLine(ch,kFALSE,line,sigma);	//getting base lines 
-   
+  Double_t BL;	//base line  
   Float_t amplitude, t0, tot, charge, pe;
-  
+   
   //reading input files
   while(!input.eof()){
-    line=0;
+    
     for(Int_t ii=0; ii<gNS; ii++){	//loop over samples in one signal
       if(fCoding=="binary") input.read((char*)&x, sizeof x);
       else input >> x;
-      fSamples[ii] = (x/4.096);
-      //fSamples[ii] = x/4.096;
-      
-      fTime[ii] = ii;
+      fSamples[ii] = x/4.096;	//recalculating from ADC channels to mV
+      fTime[ii] = ii;		//for 1GHz sampling: 1 sample = 1 ns
     }
     
-    for(Int_t i=0; i<50; i++){	//loop over samples in one signal
-     line+=fSamples[i];
+    BL = 0.;
+    for(Int_t i=0; i<50; i++){	//Base line determination
+     BL+=fSamples[i];
     }
-    line=line/50;
-    //cout << line << endl;
-    for(Int_t i=0; i<gNS; i++){	//loop over samples in one signal
-     fSamples[i]=fSamples[i]-line;
+    BL=BL/50.;
+    
+    for(Int_t i=0; i<gNS; i++){	//Base line subtraction
+     fSamples[i]=fSamples[i]-BL;
     }
+    
+    //setting signal properties
     amplitude = FindAmplitude();
     fSignal[index]->SetAmplitude(amplitude);
     
@@ -227,8 +253,7 @@ Bool_t DDTreeMaker::AnalyzeChannel(Int_t index, TString mode){
     charge = FindCharge(t0, tot); 
     fSignal[index]->SetCharge(charge);
     
-    if(ch==0) pe = charge/fCal0;
-    else if(ch==1) pe = charge/fCal1;
+    pe = charge/fCalib[index];
     fSignal[index]->SetPE(pe);
     
     fBranch[index]->Fill();
@@ -239,6 +264,7 @@ Bool_t DDTreeMaker::AnalyzeChannel(Int_t index, TString mode){
   return kTRUE;
 }
 //------------------------------------------------------------------
+/// Finds amplitude of the analyzed signal. Amplitude in mV.
 Float_t DDTreeMaker::FindAmplitude(void){
   
   Float_t amplitude = 0.;
@@ -474,6 +500,26 @@ Bool_t DDTreeMaker::SaveBaseLines(void){
   
 }
 //------------------------------------------------------------------
+/// Sets values of all provate class members to their default values.
+void DDTreeMaker::Reset(void){
+  fPath            = "";
+  fCoding          = "";
+  fPolarity        = "";
+  fOption          = "";
+  fIntegrationMode = "";
+  fNch             = 0;
+  fLimit           = 0;
+  fFile            = NULL;
+  fTreeFT          = NULL;
+  fTreeCF          = NULL;
+  if(!fCalib.empty())      fCalib.clear();
+  if(!fChannels.empty())   fChannels.clear();
+  if(!fThresholds.empty()) fThresholds.clear();
+  if(!fFractions.empty())  fFractions.clear();
+  return;  
+}
+//------------------------------------------------------------------
+/// Prints details of the DDTreeMaker class object.
 void DDTreeMaker::Print(void){
  
   cout << "\n\n------------------------------------------------" << endl;
@@ -483,14 +529,20 @@ void DDTreeMaker::Print(void){
   cout << "Analysis mode: " << fOption << endl;
   cout << "Polarity of signals: " << fPolarity << endl;
   cout << "Integration mode (for charge determination): " << fIntegrationMode;
+  
   if(fIntegrationMode=="LIMIT") cout << ";\t" << "Signal duration = " << fLimit << endl;
   else if(fIntegrationMode=="TOT") cout << endl;
   
-  if(fOption.Contains("FT")) cout << "Channel no \t Threshold [mV]" << endl;
-  else if(fOption.Contains("CF")) cout << "Channel no \t Fraction" << endl;
+  cout << "Channel no \t Calib. factor";
+  if(fOption.Contains("FT")) cout << "\t Threshold [mV]";
+  if(fOption.Contains("CF")) cout << "\t Fraction";
+  cout << endl;
   
   for(Int_t i=0; i<fNch; i++){
-    cout << fChannels[i] << "\t" << fThresholds[i] << endl;
+    cout << fChannels[i] << "\t" << fCalib[i];
+    if(fOption.Contains("FT")) cout << "\t" << fThresholds[i];
+    if(fOption.Contains("CF")) cout << "\t" << fFractions[i];
+    cout << endl;
   }
   cout << fFile->GetName() << endl;
   cout << "------------------------------------------------\n" << endl;

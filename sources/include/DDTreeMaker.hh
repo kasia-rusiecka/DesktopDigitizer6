@@ -20,29 +20,34 @@
 #include "DDSignal.hh"
 #include <iostream>
 #include <fstream>
+#include <vector>
+#include <stdlib.h>
 
 class DDSignal;
+
+using namespace std;
 
 class DDTreeMaker : public TObject{
   
 private:
-  TString  fPath;		//path to the data files
-  Int_t    fNch;		//number of channels
-  TString  fCoding;		//binary or ASCII
-  TString  fPolarity;		//signal polarity: NEGATIVE or POSITIVE
-  TString  fOption;		// CF, FT or both
+  TString  fPath;		///< Path to the data files
+  Int_t    fNch;		///< Number of channels to be analyzed 
+  TString  fCoding;		///< Data file coding: BINARY or ASCII
+  TString  fPolarity;		///< Signal polarity: NEGATIVE or POSITIVE
+  TString  fOption;		///< Analysis mode: CF, FT or both
   TString  fIntegrationMode;	//LIMIT - for fixed signal duration, TOT for time over threshold
   Float_t  fLimit;		//for LIMIT integration mode - duration of the signal
-  Double_t fCal0;
-  Double_t fCal1;
-  Int_t    fChannels[16];	//list of channel numbers
-  Double_t fThresholds[16];	//list of thresholds
-  Double_t fFractions[16];	//list of fractions
+  
+  
+  vector <Double_t> fCalib;	///< Vector containing calibration factors for charge to PE conversion for each channel
+  vector <Int_t> fChannels;	///< Vector containing list of channels to be analyzed
+  vector <Double_t> fThresholds;	///< Vector containing list of thresholds for each analyzed channel
+  vector <Double_t> fFractions;	///< Vector containing list of fraction for each analyzed channel
   TFile    *fFile;		//results ROOT file
   TTree    *fTreeFT;		//tree (fixed threshold)
   TTree    *fTreeCF;		//tree (constant fraction)
-  DDSignal *fSignal[16];
-  TBranch  *fBranch[16];
+  vector <DDSignal*> fSignal;
+  vector <TBranch*>  fBranch;
   
   Float_t  fSamples[1024];
   Int_t    fTime[1024];
@@ -65,6 +70,7 @@ public:
   Bool_t FindBaseLine(Int_t channel, Bool_t saving, Double_t &line, Double_t &sigma);
   Bool_t SaveBaseLines(void);
   void   Print(void);
+  void   Reset(void);
 
   ClassDef(DDTreeMaker,1)
 
