@@ -15,13 +15,8 @@ ClassImp(DDSignal);
 
 //------------------------------------------------------------------
 /// Default constructor.
-DDSignal::DDSignal(){
- fAmp    = -100.;
- fT0     = -100.;
- fTOT    = -100.;
- fCharge = -100.; 
- fPE     = -100.;
-}
+DDSignal::DDSignal() : fAmp(-100), fT0(-100), fTOT(-100),
+                       fCharge(-100), fPE(-100) {}
 //------------------------------------------------------------------
 /// Standard constructor.
 /// \param amplitude - signal amplitude [mV]
@@ -29,13 +24,8 @@ DDSignal::DDSignal(){
 /// \param tot - time over threshold [mV]
 /// \param charge - signal integral (uncalibrated charge)
 /// \param pe - calibrated charge [PE]
-DDSignal::DDSignal(Float_t amplitude, Float_t t0, Float_t tot, Float_t charge, Float_t pe){
- fAmp    = amplitude; 
- fT0     = t0;
- fTOT    = tot;
- fCharge = charge;
- fPE     = pe;
-}
+DDSignal::DDSignal(Float_t amplitude, Float_t t0, Float_t tot, Float_t charge, Float_t pe) : 
+                   fAmp(amplitude), fT0(t0), fTOT(tot), fCharge(charge), fPE(pe) {}
 //------------------------------------------------------------------
 /// Standard constructor.
 /// \param parameters - table containing values of the signal 

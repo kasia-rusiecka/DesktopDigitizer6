@@ -17,22 +17,23 @@ const int gNS = 1024;	//number of samples in one signal
 
 //------------------------------------------------------------------
 /// Default constructor. 
-DDTreeMaker::DDTreeMaker(){
-  Reset();
-  cout << "##### Error in DDTreeMaker Constructor! You are using default constructor." << endl;
-  cout << "##### Use standard constructor instead! DDTreeMaker(path)" << endl;
+DDTreeMaker::DDTreeMaker() : fPath(""), fCoding(""), fPolarity(""), fOption(""),
+                             fIntegrationMode(""), fNch(0), fLimit(0),
+                             fFile(NULL), fTreeFT(NULL), fTreeCF(NULL){
+
+  cout << "##### Warning in DDTreeMaker Constructor! You are using default constructor." << endl;
 }
 //------------------------------------------------------------------
 /// Standard constructor (recommended). 
 /// \param path - path to the directory containing data for analysis
-DDTreeMaker::DDTreeMaker(TString path){
+DDTreeMaker::DDTreeMaker(TString path) : fPath(path), fCoding(""), fPolarity(""), fOption(""),
+                                         fIntegrationMode(""), fNch(0), fLimit(0),
+                                         fFile(NULL), fTreeFT(NULL), fTreeCF(NULL){
   
-  Reset();
-  fPath = path;
   TString fname = path+"results.root";
   fFile = new TFile(fname,"RECREATE");
-  ReadConfig(path);
-  FindCoding(path);
+  ReadConfig();
+  FindCoding();
   
   for(Int_t i=0; i<fNch; i++){
     fSignal.push_back(new DDSignal());
@@ -42,15 +43,18 @@ DDTreeMaker::DDTreeMaker(TString path){
 /// Default destructor.
 DDTreeMaker::~DDTreeMaker(){
   //SaveBaseLines();
-  if(fFile->IsOpen()) fFile->Close();
+  if(fFile->IsOpen()) 
+    fFile->Close();
 }
 //------------------------------------------------------------------
-Bool_t DDTreeMaker::ReadConfig(TString path){
+/// Reads content of the config file config.txt and sets values to 
+/// private members of the class necessary for the analysis.
+Bool_t DDTreeMaker::ReadConfig(void){
  
   TString dummy;
   string line;
   
-  TString config_name = path+"config.txt";
+  TString config_name = fPath+"config.txt";
   ifstream config(config_name);
   
   if(!config.is_open()){
@@ -122,11 +126,10 @@ Bool_t DDTreeMaker::ReadConfig(TString path){
 }
 //------------------------------------------------------------------
 /// Checks data files coding: BINARY or ASCI.
-/// \param path - path to the directory containing data files.
-Bool_t DDTreeMaker::FindCoding(TString path){
+Bool_t DDTreeMaker::FindCoding(void){
  
-  TString fname_binary = path+Form("wave_%i.dat",fChannels[0]);
-  TString fname_ascii = path+Form("wave_%i.txt",fChannels[0]);
+  TString fname_binary = fPath+Form("wave_%i.dat",fChannels[0]);
+  TString fname_ascii = fPath+Form("wave_%i.txt",fChannels[0]);
   ifstream input_binary(fname_binary, ios::binary);
   ifstream input_ascii(fname_ascii);
   
@@ -148,7 +151,7 @@ Bool_t DDTreeMaker::FindCoding(TString path){
 //------------------------------------------------------------------
 Bool_t DDTreeMaker::MakeTree(void){
   
-  TString bname;	//branch name
+  TString bname;	    //branch name
   Int_t entries = 0;	//number of entries in the tree
   
   fBranch.reserve(fNch);
@@ -217,26 +220,26 @@ Bool_t DDTreeMaker::AnalyzeChannel(Int_t index, TString mode){
    return kFALSE;
   }
     
-  Double_t BL;	//base line  
+  Double_t BL;      //base line  
   Float_t amplitude, t0, tot, charge, pe;
    
   //reading input files
-  while(!input.eof()){
+  while(input.good()){
     
-    for(Int_t ii=0; ii<gNS; ii++){	//loop over samples in one signal
+    for(Int_t ii=0; ii<gNS; ii++){      //loop over samples in one signal
       if(fCoding=="binary") input.read((char*)&x, sizeof x);
       else input >> x;
-      fSamples[ii] = x/4.096;	//recalculating from ADC channels to mV
-      fTime[ii] = ii;		//for 1GHz sampling: 1 sample = 1 ns
+      fSamples[ii] = x/4.096;   //recalculating from ADC channels to mV
+      fTime[ii] = ii;           //for 1GHz sampling: 1 sample = 1 ns
     }
     
     BL = 0.;
-    for(Int_t i=0; i<50; i++){	//Base line determination
+    for(Int_t i=0; i<50; i++){  //Base line determination
      BL+=fSamples[i];
     }
     BL=BL/50.;
     
-    for(Int_t i=0; i<gNS; i++){	//Base line subtraction
+    for(Int_t i=0; i<gNS; i++){ //Base line subtraction
      fSamples[i]=fSamples[i]-BL;
     }
     
@@ -264,7 +267,10 @@ Bool_t DDTreeMaker::AnalyzeChannel(Int_t index, TString mode){
   return kTRUE;
 }
 //------------------------------------------------------------------
-/// Finds amplitude of the analyzed signal. Amplitude in mV.
+/// Finds amplitude of the analyzed signal as:
+/// - highest sample in the signal for POSITIVE signals
+/// - lowest sample in the signal for NEGATIVE signals.
+/// Amplitude is given in mV.
 Float_t DDTreeMaker::FindAmplitude(void){
   
   Float_t amplitude = 0.;
@@ -402,121 +408,6 @@ Float_t DDTreeMaker::FindCharge(Float_t t0, Float_t tot){
   charge = sum;
   
   return charge;
-}
-//------------------------------------------------------------------
-Bool_t DDTreeMaker::FindBaseLine(Int_t channel, Bool_t saving, Double_t &line, Double_t &sigma){
-  
-  const int first = 1;		//first channel for base line determination
-  const int last = 50;		//last channel for base line determination
-  const int nADC = 4096;	//ADC range
-  
-  TString fname;
-  ifstream input;
-  float x = 0.;
-  float mean=0;
-  int counter =1;
-  
-  TString hname = Form("base_line_channel_%i",channel);
-  TH1F *hBaseLine = new TH1F(hname,hname,nADC,0,nADC);
-  TF1 *fun_init = new TF1("fun_init","gaus",0,nADC);
-  
-  TString shname = Form("BLvsTime_%i",channel);
-  
-  TH1F* BLvsTime = new TH1F(shname,shname,10000,0,10000);
-  
-  if(fCoding=="binary"){
-    fname = fPath+Form("wave_%i.dat",channel);
-    input.open(fname, ios::binary);
-  }
-  else{
-    fname = fPath+Form("wave_%i.txt",channel);
-    input.open(fname);
-  }
-  
-  if(!input.is_open()){
-    cout << "##### Error in DDTreeMaker::BaseLine()! Could not open input file!" << endl;
-    cout << fname << endl;
-    return kFALSE;
-  }
-  
-  while(!input.eof()){
-    mean=0;
-    for(Int_t i=0; i<gNS; i++){
-      if(fCoding=="binary") input.read((char*)&x, sizeof x);
-      else input >> x;
-      if(i>=first && i<= last){
-	hBaseLine->Fill(x);//4.096); 
-	mean +=x;
-	}
-      }
-    mean=mean/(last-first);
-    BLvsTime->SetBinContent(counter,mean);
-    counter++;
-  }
-  
-  hBaseLine->Fit("fun_init","QR");		//initial fitting
-  Double_t par0 = fun_init->GetParameter(0);
-  Double_t par1 = fun_init->GetParameter(1);
-  Double_t par2 = fun_init->GetParameter(2);
-  Double_t min = par1 - 1.5*par2;
-  Double_t max = par1 + 2*par2;
- 
-  TF1 *fun = new TF1("fun","gaus",min,max);	//proper fitting
-  fun->SetParameters(par0,par1,par2);
-  hBaseLine->Fit("fun","QR");
-  //line =hBaseLine->GetMean() ;	//value of the base line
-  line = fun->GetParameter(1);	//value of the base line
-  sigma = fun->GetParameter(2); //sigma of the base line
-  
-  input.close();
-  
-  if(saving){
-   fFile->cd();
-   hBaseLine->Write();
-   //BLvsTime->Write();
-  }
-  
-  hBaseLine->Delete();
-  
-  return kTRUE;
-}
-//------------------------------------------------------------------
-Bool_t DDTreeMaker::SaveBaseLines(void){
-  
-  TGraphErrors *gBaseLines = new TGraphErrors(fNch);
-  gBaseLines->SetName("baseLines");
-  gBaseLines->SetTitle("baseLines");
-  Double_t line = 0.;
-  Double_t sigma = 0.;
-  
-  for(Int_t i=0; i<fNch; i++){
-    FindBaseLine(fChannels[i],kTRUE,line,sigma);
-    gBaseLines->SetPoint(i,fChannels[i],line);
-    gBaseLines->SetPointError(i,0,sigma);
-  }
-  
-  fFile->cd();
-  gBaseLines->Write();
-  
-}
-//------------------------------------------------------------------
-/// Sets values of all provate class members to their default values.
-void DDTreeMaker::Reset(void){
-  fPath            = "";
-  fCoding          = "";
-  fPolarity        = "";
-  fOption          = "";
-  fIntegrationMode = "";
-  fNch             = 0;
-  fLimit           = 0;
-  fFile            = NULL;
-  fTreeFT          = NULL;
-  fTreeCF          = NULL;
-  if(!fCalib.empty())      fCalib.clear();
-  if(!fChannels.empty())   fChannels.clear();
-  if(!fThresholds.empty()) fThresholds.clear();
-  if(!fFractions.empty())  fFractions.clear();
-  return;  
 }
 //------------------------------------------------------------------
 /// Prints details of the DDTreeMaker class object.
