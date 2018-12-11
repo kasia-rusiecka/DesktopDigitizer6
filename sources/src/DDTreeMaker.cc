@@ -17,18 +17,31 @@ const int gNS = 1024;	//number of samples in one signal
 
 //------------------------------------------------------------------
 /// Default constructor. 
-DDTreeMaker::DDTreeMaker() : fPath(""), fCoding(""), fPolarity(""), fOption(""),
-                             fIntegrationMode(""), fNch(0), fLimit(0),
-                             fFile(NULL), fTreeFT(NULL), fTreeCF(NULL){
-
+DDTreeMaker::DDTreeMaker() : fPath(""), 
+                             fCoding(""), 
+                             fPolarity(""), 
+                             fOption(""),
+                             fIntegrationMode(""), 
+                             fNch(0), fLimit(0),
+                             fFile(NULL), 
+                             fTreeFT(NULL), 
+                             fTreeCF(NULL) {
+       
   cout << "##### Warning in DDTreeMaker Constructor! You are using default constructor." << endl;
 }
 //------------------------------------------------------------------
 /// Standard constructor (recommended). 
 /// \param path - path to the directory containing data for analysis
-DDTreeMaker::DDTreeMaker(TString path) : fPath(path), fCoding(""), fPolarity(""), fOption(""),
-                                         fIntegrationMode(""), fNch(0), fLimit(0),
-                                         fFile(NULL), fTreeFT(NULL), fTreeCF(NULL){
+DDTreeMaker::DDTreeMaker(TString path) : fPath(path), 
+                                         fCoding(""), 
+                                         fPolarity(""), 
+                                         fOption(""),
+                                         fIntegrationMode(""), 
+                                         fNch(0), 
+                                         fLimit(0),
+                                         fFile(NULL), 
+                                         fTreeFT(NULL), 
+                                         fTreeCF(NULL) {
   
   TString fname = path+"results.root";
   fFile = new TFile(fname,"RECREATE");
@@ -115,8 +128,9 @@ Bool_t DDTreeMaker::ReadConfig(void){
     }
     else{
      cout << "##### Warning in DDTreeMaker::ReadConfig()!" << endl;
-     cout << "Unknown syntax, skipping line" << endl;
+     cout << "Unknown syntax, skipping line: " << endl;
      getline(config,line);
+     cout << line << endl;
     }
   }
   
@@ -151,7 +165,7 @@ Bool_t DDTreeMaker::FindCoding(void){
 //------------------------------------------------------------------
 Bool_t DDTreeMaker::MakeTree(void){
   
-  TString bname;	    //branch name
+  TString bname;	//branch name
   Int_t entries = 0;	//number of entries in the tree
   
   fBranch.reserve(fNch);

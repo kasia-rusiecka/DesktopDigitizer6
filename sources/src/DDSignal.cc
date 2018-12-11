@@ -15,8 +15,12 @@ ClassImp(DDSignal);
 
 //------------------------------------------------------------------
 /// Default constructor.
-DDSignal::DDSignal() : fAmp(-100), fT0(-100), fTOT(-100),
-                       fCharge(-100), fPE(-100) {}
+DDSignal::DDSignal() : fAmp(-100), 
+                       fT0(-100), 
+                       fTOT(-100),
+                       fCharge(-100), 
+                       fPE(-100) {
+}
 //------------------------------------------------------------------
 /// Standard constructor.
 /// \param amplitude - signal amplitude [mV]
@@ -25,18 +29,22 @@ DDSignal::DDSignal() : fAmp(-100), fT0(-100), fTOT(-100),
 /// \param charge - signal integral (uncalibrated charge)
 /// \param pe - calibrated charge [PE]
 DDSignal::DDSignal(Float_t amplitude, Float_t t0, Float_t tot, Float_t charge, Float_t pe) : 
-                   fAmp(amplitude), fT0(t0), fTOT(tot), fCharge(charge), fPE(pe) {}
+                   fAmp(amplitude), 
+                   fT0(t0), 
+                   fTOT(tot), 
+                   fCharge(charge), 
+                   fPE(pe) {
+ }
 //------------------------------------------------------------------
 /// Standard constructor.
 /// \param parameters - table containing values of the signal 
 /// parameters in the following order: amplitude, T0, TOT, charge,
 /// charge in PE
-DDSignal::DDSignal(Float_t *parameters){
- fAmp    = parameters[0];
- fT0     = parameters[1];
- fTOT    = parameters[2];
- fCharge = parameters[3]; 
- fPE     = parameters[4]; 
+DDSignal::DDSignal(Float_t *parameters) : fAmp(parameters[0]), 
+                                          fT0(parameters[1]),
+                                          fTOT(parameters[2]),
+                                          fCharge(parameters[3]),
+                                          fPE(parameters[4]) {
 }
 //------------------------------------------------------------------
 /// Default destructor

@@ -14,20 +14,28 @@ ClassImp(DDCalib);
 
 //------------------------------------------------------------------
 /// Deafault constructor.
-DDCalib::DDCalib() : fPath(""), fMethod(""), fCh(0),
-                     fNPeaks(0), fInputFile(NULL){
+DDCalib::DDCalib() : fPath(""), 
+                     fMethod(""), 
+                     fCh(0),
+                     fNPeaks(0), 
+                     fInputFile(NULL) {
                          
   cout << "##### Warning in DDCalib constructor! You are using default constructor!" << endl;
 }
 //------------------------------------------------------------------
 /// Standard constructor.
 /// \param path - path to the directory containing data files
-DDCalib::DDCalib(TString path) : fPath(path), fMethod(""), fCh(0), 
-                                 fNPeaks(0), fInputFile(NULL){
+DDCalib::DDCalib(TString path) : fPath(path), 
+                                 fMethod(""), 
+                                 fCh(0), 
+                                 fNPeaks(0), 
+                                 fInputFile(NULL),
+                                 fOutputFile(NULL) {
                                      
   fInputFile = new TFile(path+"results.root","READ");
+  fOutputFile = new TFile(path+"calib.root","RECREATE");
   
-  if(!fInputFile->IsOpen()){
+  if(!(fInputFile->IsOpen() || fOutputFile->IsOpen())){
     throw "##### Exception in DDCalib constructor!"; 
   }
   
@@ -36,8 +44,8 @@ DDCalib::DDCalib(TString path) : fPath(path), fMethod(""), fCh(0),
 //------------------------------------------------------------------
 /// Default destructor.
 DDCalib::~DDCalib(){
-  if(fInputFile->IsOpen()) 
-    fInputFile->Close();
+  if(fInputFile->IsOpen()) fInputFile->Close();
+  if(fOutputFile->IsOpen()) fOutputFile->Close();
 }
 //------------------------------------------------------------------
 Bool_t DDCalib::ReadConfig(void){
@@ -53,6 +61,8 @@ Bool_t DDCalib::ReadConfig(void){
     cout << "Could not open config file!" << endl;
     return kFALSE;
   }
+  
+  cout << "---------- Reading config file " << config_name << endl;
   
   while(config.good()){
    
@@ -92,15 +102,29 @@ Bool_t DDCalib::ReadConfig(void){
     }
     else{
       cout << "##### Warning in DDCalib::ReadConfig()!" << endl;
-      cout << "Unknown syntax, skipping line" << endl;
+      cout << "Unknown syntax, skipping line: " << endl;
       getline(config,line);
+      cout << line << endl;
     }
   }
+  
+  config.close();
   
   return kTRUE;
 }
 //------------------------------------------------------------------
 Bool_t DDCalib::Calibrate(void){
+  
+  if(fMethod=="PE_CUT") 
+    CalibratePEcut();
+  else if(fMethod=="PE_SUM")
+    CalibratePEsum();
+  else if(fMethod=="EN")
+    CalibrateEnergy();
+  else{
+    cout << "##### Error in DDCalib::Calibrate()! Unknown calibration method!" << endl;
+    return kFALSE;
+  }
   
   return kTRUE;
 }
@@ -111,6 +135,26 @@ Bool_t DDCalib::CalibratePEcut(void){
 }
 //------------------------------------------------------------------
 Bool_t DDCalib::CalibratePEsum(void){
+  
+  cout << "---------- Channel " << fCh << " calibration..." << endl;
+  
+  TString hname = Form("ch%i_PE_calib",fCh);
+  TH1D *hist = new TH1D(hname,hname,2000,0,1000);
+  
+  TString selection = Form("ch_%i.fCharge>>hist",fCh);
+  TString cut = Form("ch_%i.fCharge>0",fCh);
+  fTree->Draw(selection,cut);
+  
+  TString formula;
+  for(int i=0; i<fNPeaks; i++){
+    if(i!=fNPeaks-1)
+     formula.Append(Form("gaus(%i)+",3*i)); 
+    else 
+     formula.Append(Form("gaus(%i)",3*i));
+  }
+  
+  cout << formula << endl;
+  TF1 *fun = new TF1("fun",formula,0,100);
   
   return kTRUE;
 }
@@ -126,6 +170,8 @@ void DDCalib::Print(void){
   cout << "This is DDCalib class objecto for the measurement: " << fPath << endl;
   cout << "Analyzed channel: " << fCh << endl;
   cout << "Calibration method: " << fMethod << endl;
+  cout << "Input file: " << fInputFile->GetName() << endl;
+  cout << "Results saved in: " << fOutputFile->GetName() << endl;
   return;
 }
 //------------------------------------------------------------------

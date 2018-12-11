@@ -37,3 +37,6 @@ target_link_libraries(DesktopDigitizer6 ${ROOT_LIBRARIES})
 #---Create  a main program using the library
 add_executable(digit digit.cc)
 target_link_libraries(digit DesktopDigitizer6)
+
+add_executable(calib calib.cc)
+target_link_libraries(calib DesktopDigitizer6)

@@ -34,6 +34,7 @@ private:
   TString fMethod;
   Int_t   fNPeaks;
   TFile*  fInputFile; 
+  TFile*  fOutputFile;
   vector <Double_t> fPeaksMin; 
   vector <Double_t> fPeaksMax;
   
