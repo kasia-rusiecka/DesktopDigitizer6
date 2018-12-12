@@ -31,21 +31,45 @@ DDCalib::DDCalib(TString path) : fPath(path),
                                  fNPeaks(0), 
                                  fInputFile(NULL),
                                  fOutputFile(NULL) {
-                                     
+   
+  ReadConfig();
+  
   fInputFile = new TFile(path+"results.root","READ");
-  fOutputFile = new TFile(path+"calib.root","RECREATE");
+  fOutputFile = new TFile(path+"calib_"+fMethod+".root","RECREATE");
   
   if(!(fInputFile->IsOpen() || fOutputFile->IsOpen())){
     throw "##### Exception in DDCalib constructor!"; 
   }
   
-  ReadConfig();
+  Bool_t tree_flag = GetTree();
+  cout << "Tree access flag: " << tree_flag << endl; 
 }
 //------------------------------------------------------------------
 /// Default destructor.
 DDCalib::~DDCalib(){
-  if(fInputFile->IsOpen()) fInputFile->Close();
   if(fOutputFile->IsOpen()) fOutputFile->Close();
+  if(fInputFile->IsOpen()) fInputFile->Close();
+}
+//------------------------------------------------------------------
+Bool_t DDCalib::GetTree(void){
+  
+  fTree = (TTree*)fInputFile->Get("tree_cf");
+  
+  if(fTree!=NULL){
+    cout << "\nIn DDCalib::GetTree(). Accessing Constant Fraction data..." << endl;
+    return kTRUE;
+  }
+  else{
+    fTree = (TTree*)fInputFile->Get("tree_ft");
+    if(fTree==NULL){
+     cout << "\n##### Error in DDCalib::GetTree()! Could not access data!"<< endl;
+     return kFALSE;
+    }
+    else{
+        cout << "\nIn DDCalib::GetTree(). Accessing Fixed Threshold data..." << endl;
+        return kTRUE;
+    }
+  }
 }
 //------------------------------------------------------------------
 Bool_t DDCalib::ReadConfig(void){
@@ -62,7 +86,7 @@ Bool_t DDCalib::ReadConfig(void){
     return kFALSE;
   }
   
-  cout << "---------- Reading config file " << config_name << endl;
+  cout << "\n---------- Reading config file " << config_name << endl;
   
   while(config.good()){
    
@@ -91,13 +115,24 @@ Bool_t DDCalib::ReadConfig(void){
        cout << "At least 2 peaks needed for the calibration" << endl;
        return kFALSE;
       }
-      fPeaksMin.reserve(fNPeaks);
-      fPeaksMax.reserve(fNPeaks);
+      if(fMethod=="PE_CUT"){
+        fPeaksMin.reserve(fNPeaks);
+        fPeaksMax.reserve(fNPeaks);
+      }
+      else if(fMethod=="PE_SUM"){
+        fGaussPar.reserve(fNPeaks*3);
+      }
     }
     else if(dummy.Contains("PEAK_MIN")){
       getline(config,line);
       for(Int_t i=0; i<fNPeaks; i++){
         config >> fPeaksMin[i] >> fPeaksMax[i];
+      }
+    }
+    else if(dummy.Contains("CONST")){
+      getline(config,line);
+      for(Int_t i=0; i<fNPeaks; i++){
+          config >> fGaussPar[i*3] >> fGaussPar[(i*3)+1] >> fGaussPar[(i*3)+2];
       }
     }
     else{
@@ -136,14 +171,19 @@ Bool_t DDCalib::CalibratePEcut(void){
 //------------------------------------------------------------------
 Bool_t DDCalib::CalibratePEsum(void){
   
-  cout << "---------- Channel " << fCh << " calibration..." << endl;
+  cout << "\n---------- Channel " << fCh << " calibration..." << endl;
+  cout << "---------- PE callibration. Fitting sum of Gaussians to the charge spectrum..." << endl;
   
   TString hname = Form("ch%i_PE_calib",fCh);
-  TH1D *hist = new TH1D(hname,hname,2000,0,1000);
+  TH1D *hist = new TH1D(hname,hname,1000,0,500);
   
   TString selection = Form("ch_%i.fCharge>>hist",fCh);
   TString cut = Form("ch_%i.fCharge>0",fCh);
-  fTree->Draw(selection,cut);
+  cout << selection << "\t" << cut << endl;
+  fTree->Draw(selection,cut,"");
+  fTree->Print();
+  hist->Print();
+  hist->Write();
   
   TString formula;
   for(int i=0; i<fNPeaks; i++){
@@ -152,14 +192,37 @@ Bool_t DDCalib::CalibratePEsum(void){
     else 
      formula.Append(Form("gaus(%i)",3*i));
   }
-  
-  cout << formula << endl;
+
   TF1 *fun = new TF1("fun",formula,0,100);
+  Double_t npar = fun->GetNpar();
+  
+  for(Int_t i=0; i<npar; i++){
+   fun->SetParameter(i,fGaussPar[i]);   
+  }
+  
+  //hist->Fit("fun","","",fGaussPar[1]-fGaussPar[2],
+  //          fGaussPar[npar-2]+fGaussPar[npar-1]);
+  
+  //fOutputFile->cd();
+  //hist->Write();
   
   return kTRUE;
 }
 //------------------------------------------------------------------
 Bool_t DDCalib::CalibrateEnergy(void){
+    
+  cout << "\n---------- Channel " << fCh << " calibration..." << endl;
+  cout << "---------- Energy callibration..." << endl;
+  
+  TString hname = Form("ch%i_Energy_calib",fCh);
+  TH1D *hist = new TH1D(hname,hname,2000,0,1.5E5);
+  
+  TString selection = Form("ch_%i.fCharge>>hist",fCh);
+  TString cut = Form("ch_%i.fCharge>0",fCh);
+  fTree->Draw(selection,cut,"");
+  fTree->Print();
+  hist->Print();
+  hist->Write();
   
   return kTRUE;
 }
@@ -167,11 +230,12 @@ Bool_t DDCalib::CalibrateEnergy(void){
 /// Prints details of the DDCalib class object.
 void DDCalib::Print(void){
   cout << "\n\n------------------------------------------------" << endl;
-  cout << "This is DDCalib class objecto for the measurement: " << fPath << endl;
+  cout << "This is DDCalib class object for the measurement: " << fPath << endl;
   cout << "Analyzed channel: " << fCh << endl;
   cout << "Calibration method: " << fMethod << endl;
   cout << "Input file: " << fInputFile->GetName() << endl;
   cout << "Results saved in: " << fOutputFile->GetName() << endl;
+  cout << "------------------------------------------------\n" << endl;
   return;
 }
 //------------------------------------------------------------------
