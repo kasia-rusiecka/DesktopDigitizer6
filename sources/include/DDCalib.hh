@@ -39,10 +39,13 @@ private:
   TFile*  fInputFile; 
   TFile*  fOutputFile;
   TTree*  fTree;
-  vector <Double_t> fPeaksMin; 
-  vector <Double_t> fPeaksMax;
+  vector <Double_t> fAmpPeakMin; 
+  vector <Double_t> fAmpPeakMax;
   vector <Double_t> fGaussPar;
-  vector <Double_t> fGausFitRange;
+  vector <Double_t> fGaussFitRange;
+  vector <Double_t> fPeakID;
+  vector <Double_t> fPeakPos;
+  vector <Double_t> fPeakWidth;
   
 public:
   DDCalib();
@@ -51,14 +54,11 @@ public:
   
   Bool_t ReadConfig(void);
   Bool_t GetTree(void);
-  
   Bool_t Calibrate(void);
   Bool_t CalibratePEcut(void);
   Bool_t CalibratePEsum(void);
   Bool_t CalibrateEnergy(void);
-  
-  void Print(void);
-  void Reset(void);
+  void   Print(void);
   
   ClassDef(DDCalib,1)
 };
