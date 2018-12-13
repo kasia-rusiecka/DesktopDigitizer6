@@ -121,6 +121,7 @@ Bool_t DDCalib::ReadConfig(void){
       }
       else if(fMethod=="PE_SUM"){
         fGaussPar.reserve(fNPeaks*3);
+	fGausFitRange.reserve(2);
       }
     }
     else if(dummy.Contains("PEAK_MIN")){
@@ -134,6 +135,10 @@ Bool_t DDCalib::ReadConfig(void){
       for(Int_t i=0; i<fNPeaks; i++){
           config >> fGaussPar[i*3] >> fGaussPar[(i*3)+1] >> fGaussPar[(i*3)+2];
       }
+    }
+    else if(dummy.Contains("FIT_MIN")){
+      getline(config,line);
+      config >> fGausFitRange[0] >> fGausFitRange[1];
     }
     else{
       cout << "##### Warning in DDCalib::ReadConfig()!" << endl;
@@ -174,16 +179,13 @@ Bool_t DDCalib::CalibratePEsum(void){
   cout << "\n---------- Channel " << fCh << " calibration..." << endl;
   cout << "---------- PE callibration. Fitting sum of Gaussians to the charge spectrum..." << endl;
   
+  Double_t unique = gRandom->Uniform(0,1);
   TString hname = Form("ch%i_PE_calib",fCh);
-  TH1D *hist = new TH1D(hname,hname,1000,0,500);
   
-  TString selection = Form("ch_%i.fCharge>>hist",fCh);
+  TString selection = Form("ch_%i.fCharge>>htemp%.7f(1000,0,500)",fCh,unique);
   TString cut = Form("ch_%i.fCharge>0",fCh);
-  cout << selection << "\t" << cut << endl;
   fTree->Draw(selection,cut,"");
-  fTree->Print();
-  hist->Print();
-  hist->Write();
+  TH1D *hist = (TH1D*)gROOT->FindObjectAny(Form("htemp%.7f",unique));
   
   TString formula;
   for(int i=0; i<fNPeaks; i++){
@@ -200,11 +202,31 @@ Bool_t DDCalib::CalibratePEsum(void){
    fun->SetParameter(i,fGaussPar[i]);   
   }
   
-  //hist->Fit("fun","","",fGaussPar[1]-fGaussPar[2],
-  //          fGaussPar[npar-2]+fGaussPar[npar-1]);
+  hist->Fit("fun","","",fGausFitRange[0],fGausFitRange[1]);
   
-  //fOutputFile->cd();
-  //hist->Write();
+  TString gname = Form("ch_%i_PE_calib_graph",fCh);
+  TGraphErrors *graph = new TGraphErrors(fNPeaks);
+  graph->SetName(gname);
+  graph->SetTitle(gname);
+  
+  for(Int_t i=0; i<fNPeaks; i++){
+    graph->SetPoint(i,i+1,fun->GetParameter((i*3)+1)); 
+    graph->SetPointError(i,0,fun->GetParError((i*3)+1));
+  }
+  
+  
+  TF1 *fpol1 = new TF1("fpol1","pol1",1,fNPeaks);
+  graph->Fit(fpol1);
+  
+  cout << "\n\n---------- Fit results:" << endl;
+  cout << "Gauss fit Chi2/NDF = " << fun->GetChisquare()/fun->GetNDF() << endl;
+  cout << "Linear fit: Chi2/NDF = " << fpol1->GetChisquare()/fpol1->GetNDF() << endl;
+  cout << "---------------------------\n" << endl;
+  
+  //----- Saving 
+  fOutputFile->cd();
+  hist->Write();
+  graph->Write();
   
   return kTRUE;
 }
@@ -220,8 +242,6 @@ Bool_t DDCalib::CalibrateEnergy(void){
   TString selection = Form("ch_%i.fCharge>>hist",fCh);
   TString cut = Form("ch_%i.fCharge>0",fCh);
   fTree->Draw(selection,cut,"");
-  fTree->Print();
-  hist->Print();
   hist->Write();
   
   return kTRUE;

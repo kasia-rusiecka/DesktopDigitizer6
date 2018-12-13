@@ -18,6 +18,9 @@
 #include "TCanvas.h"
 #include "TFile.h"
 #include "TTree.h"
+#include "TFitResultPtr.h"
+#include "TROOT.h"
+#include "TRandom.h"
 #include "DDSignal.hh"
 #include <iostream>
 #include <fstream>
@@ -39,6 +42,7 @@ private:
   vector <Double_t> fPeaksMin; 
   vector <Double_t> fPeaksMax;
   vector <Double_t> fGaussPar;
+  vector <Double_t> fGausFitRange;
   
 public:
   DDCalib();
