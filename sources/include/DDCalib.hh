@@ -18,7 +18,7 @@
 #include "TCanvas.h"
 #include "TFile.h"
 #include "TTree.h"
-#include "TFitResultPtr.h"
+#include "TSpectrum.h"
 #include "TROOT.h"
 #include "TRandom.h"
 #include "DDSignal.hh"
@@ -43,7 +43,7 @@ private:
   vector <Double_t> fAmpPeakMax;
   vector <Double_t> fGaussPar;
   vector <Double_t> fGaussFitRange;
-  vector <Double_t> fPeakID;
+  vector <Int_t> fPeakID;
   vector <Double_t> fPeakPos;
   vector <Double_t> fPeakWidth;
   

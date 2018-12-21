@@ -90,6 +90,7 @@ Bool_t DDTreeMaker::ReadConfig(void){
      fCalib.reserve(fNch);
      fThresholds.reserve(fNch);
      fFractions.reserve(fNch);
+     fCalibMethod.reserve(fNch);
     }
     else if(dummy.Contains("POL")){
      config >> fPolarity;
@@ -121,8 +122,12 @@ Bool_t DDTreeMaker::ReadConfig(void){
     else if(dummy.Contains("CH_LIST")){
      getline(config,line);
      for(Int_t i=0; i<fNch; i++){
-      config >> fChannels[i] >> fCalib[i] 
-             >> fThresholds[i] >> fFractions[i];
+      config >> fChannels[i] >> fThresholds[i] 
+             >> fFractions[i] >> fCalibMethod[i];
+      if(fCalibMethod[i]=="PE") 
+	config >> fCalib[i];
+      else if(fCalibMethod[i]=="EN")
+	config >> fSlope >> fConst;
       fThresholds[i] = fThresholds[i]/4.096;	//recalculating from ADC channels to mV   
        }
     }
@@ -270,7 +275,8 @@ Bool_t DDTreeMaker::AnalyzeChannel(Int_t index, TString mode){
     charge = FindCharge(t0, tot); 
     fSignal[index]->SetCharge(charge);
     
-    pe = charge/fCalib[index];
+    //pe = charge/fCalib[index];
+    pe = CalibrateCharge(index,charge);
     fSignal[index]->SetPE(pe);
     
     fBranch[index]->Fill();
@@ -424,6 +430,23 @@ Float_t DDTreeMaker::FindCharge(Float_t t0, Float_t tot){
   return charge;
 }
 //------------------------------------------------------------------
+Float_t DDTreeMaker::CalibrateCharge(Int_t ch, Float_t charge){
+
+  Float_t calibrated = 0;
+  
+  if(fCalibMethod[ch]=="PE"){
+    calibrated = charge/fCalib[ch];
+  }
+  else if(fCalibMethod[ch]=="EN"){
+    calibrated = charge*fSlope + fConst;
+  }
+  else{
+    cout << "##### Error in DDTreeMaker::CalibrateCharge()! Unknown callibration method!" << endl;
+  }
+  
+  return calibrated;
+}
+//------------------------------------------------------------------
 /// Prints details of the DDTreeMaker class object.
 void DDTreeMaker::Print(void){
  
@@ -438,13 +461,15 @@ void DDTreeMaker::Print(void){
   if(fIntegrationMode=="LIMIT") cout << ";\t" << "Signal duration = " << fLimit << endl;
   else if(fIntegrationMode=="TOT") cout << endl;
   
-  cout << "Channel no \t Calib. factor";
+  cout << "Channel no \t Calib. method \tCalib. factor";
   if(fOption.Contains("FT")) cout << "\t Threshold [mV]";
   if(fOption.Contains("CF")) cout << "\t Fraction";
   cout << endl;
   
   for(Int_t i=0; i<fNch; i++){
-    cout << fChannels[i] << "\t" << fCalib[i];
+    cout << fChannels[i] << "\t" << fCalibMethod[i];
+    if(fCalibMethod[i]=="PE") cout << "\t" << fCalib[i];
+    else if(fCalibMethod[i]=="EN")  cout << "\t" << fSlope << " " << fConst;
     if(fOption.Contains("FT")) cout << "\t" << fThresholds[i];
     if(fOption.Contains("CF")) cout << "\t" << fFractions[i];
     cout << endl;

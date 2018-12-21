@@ -15,7 +15,7 @@ list(APPEND CMAKE_PREFIX_PATH $ENV{ROOTSYS})
 
 
 #---Locate the ROOT package and defines a number of variables (e.g. ROOT_INCLUDE_DIRS)
-find_package(ROOT REQUIRED COMPONENTS RIO)
+find_package(ROOT REQUIRED COMPONENTS RIO Spectrum)
 
 
 #---Set global variables e.g. where sources and includes are

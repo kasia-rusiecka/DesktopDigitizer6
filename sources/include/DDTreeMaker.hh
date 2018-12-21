@@ -37,6 +37,8 @@ private:
   TString  fOption;             ///< Analysis mode: CF, FT or both
   TString  fIntegrationMode;    //LIMIT - for fixed signal duration, TOT for time over threshold
   Float_t  fLimit;              //for LIMIT integration mode - duration of the signal
+  Float_t  fSlope;
+  Float_t  fConst;
   TFile*   fFile;               //results ROOT file
   TTree*   fTreeFT;             //tree (fixed threshold)
   TTree*   fTreeCF;             //tree (constant fraction)
@@ -44,6 +46,7 @@ private:
   vector <Int_t> fChannels;         ///< Vector containing list of channels to be analyzed
   vector <Double_t> fThresholds;    ///< Vector containing list of thresholds for each analyzed channel
   vector <Double_t> fFractions;     ///< Vector containing list of fraction for each analyzed channel
+  vector <TString> fCalibMethod;
 
   vector <DDSignal*> fSignal;       ///< Vector containing DDSignals for each channel
   vector <TBranch*>  fBranch;       ///< Vector containing branches of the tree
@@ -64,6 +67,7 @@ public:
   Float_t FindT0(Int_t index, Float_t amplitude, TString mode);
   Float_t FindTOT(Int_t index, Float_t amplitude, Float_t t0, TString mode);
   Float_t FindCharge(Float_t t0, Float_t tot);
+  Float_t CalibrateCharge(Int_t ch, Float_t charge);
   
   void   Print(void);
 
