@@ -119,17 +119,17 @@ Bool_t DDCalib::ReadConfig(void){
         return kFALSE;
       }
       if(fMethod=="PE_CUT"){
-        fAmpPeakMin.reserve(fNPeaks);
-        fAmpPeakMax.reserve(fNPeaks);
+        fAmpPeakMin.resize(fNPeaks);
+        fAmpPeakMax.resize(fNPeaks);
       }
       else if(fMethod=="PE_SUM"){
-        fGaussPar.reserve(fNPeaks*3);
-        fGaussFitRange.reserve(2);
+        fGaussPar.resize(fNPeaks*3);
+        fGaussFitRange.resize(2);
       }
       else if(fMethod=="EN"){
-        fPeakID.reserve(fNPeaks);
-        fPeakPos.reserve(fNPeaks);
-        fPeakWidth.reserve(fNPeaks);
+        fPeakID.resize(fNPeaks);
+        fPeakPos.resize(fNPeaks);
+        fPeakWidth.resize(fNPeaks);
       }
     }
     else if(dummy.Contains("CONST")){
@@ -223,8 +223,8 @@ Bool_t DDCalib::CalibratePEcut(void){
   TSpectrum *spectrum = new TSpectrum(1);
   vector <TH1D*> hCharge;
   vector <TF1*> fun;
-  hCharge.reserve(fNPeaks);
-  fun.reserve(fNPeaks);
+  hCharge.resize(fNPeaks);
+  fun.resize(fNPeaks);
   
   for(Int_t i=0; i<fNPeaks; i++){
     unique = gRandom->Uniform(0,1);
@@ -395,7 +395,7 @@ Bool_t DDCalib::CalibrateEnergy(void){
   TF1 *funPeakBg = new TF1("funPeakBg","gaus(0)+pol2(3)",0,100);
   TF1 *funPeak = new TF1("funPeak","gaus(0)",0,100);
   vector <TF1*> peaks;
-  peaks.reserve(fNPeaks);
+  peaks.resize(fNPeaks);
   Int_t npar = 0;
   
   for(Int_t i=0; i<fNPeaks; i++){

@@ -75,25 +75,27 @@ Bool_t DDTreeMaker::ReadConfig(void){
    return kFALSE;
   }
   
-  while(!config.eof()){
+  while(config.good()){
    
     config >> dummy;
     
     if(dummy.Contains("NCH")){
      config >> fNch;
+     cout << "N channels: " << fNch << endl;
      if(fNch>16){
       cout << "##### Error in DDTreeMaker::ReadConfig()!" << endl;
       cout << "Number of channels cannot be larger than 16!" << endl;
       return kFALSE;
      }
-     fChannels.reserve(fNch);
-     fCalib.reserve(fNch);
-     fThresholds.reserve(fNch);
-     fFractions.reserve(fNch);
-     fCalibMethod.reserve(fNch);
+     fChannels.resize(fNch);
+     fCalib.resize(fNch);
+     fThresholds.resize(fNch);
+     fFractions.resize(fNch);
+     fCalibMethod.resize(fNch);
     }
     else if(dummy.Contains("POL")){
      config >> fPolarity;
+     cout << "Polarity: " << fPolarity << endl;
      if(!(fPolarity=="NEGATIVE" || fPolarity=="POSITIVE")){
       cout << "##### Error in DDTreeMaker::ReadConfig()!" << endl;
       cout << "Unknown signal polarity!" << endl;
@@ -102,6 +104,7 @@ Bool_t DDTreeMaker::ReadConfig(void){
     }
     else if(dummy.Contains("OPT")){
      config >> fOption;
+     cout << "Option: " << fOption << endl; 
      if(!fOption.Contains("FT") && !fOption.Contains("CF")){
       cout << "##### Error in DDTreeMaker::ReadConfig!" << endl;
       cout << "Unknown analysis mode!" << endl;
@@ -110,6 +113,7 @@ Bool_t DDTreeMaker::ReadConfig(void){
     }
     else if(dummy.Contains("INT")){
      config >> fIntegrationMode; 
+     cout << "Integration mode: " << fIntegrationMode << endl;
      if(!(fIntegrationMode=="LIMIT" || fIntegrationMode=="TOT")){
        cout << "##### Error in DDTreeMaker::ReadConfig!" << endl;
        cout << "Unknown integration mode!" << endl;
@@ -117,19 +121,26 @@ Bool_t DDTreeMaker::ReadConfig(void){
      }
      if(fIntegrationMode=="LIMIT"){
        config >> fLimit;
+       cout << "Limit: " << fLimit << endl;
      }
     }
     else if(dummy.Contains("CH_LIST")){
      getline(config,line);
+
      for(Int_t i=0; i<fNch; i++){
-      config >> fChannels[i] >> fThresholds[i] 
-             >> fFractions[i] >> fCalibMethod[i];
-      if(fCalibMethod[i]=="PE") 
+      config >> fChannels[i] >> fThresholds[i] >> fFractions[i] >> fCalibMethod[i];
+      fThresholds[i] = fThresholds[i]/4.096;	//recalculating from ADC channels to mV
+      if(fCalibMethod[i]=="PE"){ 
 	config >> fCalib[i];
-      else if(fCalibMethod[i]=="EN")
+      }
+      else if(fCalibMethod[i]=="EN"){
 	config >> fSlope >> fConst;
-      fThresholds[i] = fThresholds[i]/4.096;	//recalculating from ADC channels to mV   
-       }
+      }
+      else {
+	cerr << "Unknown calib method " << fCalibMethod[i].Data() << endl;
+	abort();
+      }
+     }
     }
     else{
      cout << "##### Warning in DDTreeMaker::ReadConfig()!" << endl;
@@ -173,7 +184,7 @@ Bool_t DDTreeMaker::MakeTree(void){
   TString bname;	//branch name
   Int_t entries = 0;	//number of entries in the tree
   
-  fBranch.reserve(fNch);
+  fBranch.resize(fNch);
   
   if(fOption.Contains("FT")){
     
@@ -253,12 +264,12 @@ Bool_t DDTreeMaker::AnalyzeChannel(Int_t index, TString mode){
     }
     
     BL = 0.;
-    for(Int_t i=0; i<50; i++){  //Base line determination
+    for(Int_t i=0; i<50; i++){  //base line determination
      BL+=fSamples[i];
     }
     BL=BL/50.;
     
-    for(Int_t i=0; i<gNS; i++){ //Base line subtraction
+    for(Int_t i=0; i<gNS; i++){ //base line subtraction
      fSamples[i]=fSamples[i]-BL;
     }
     
