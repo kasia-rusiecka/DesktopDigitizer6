@@ -40,6 +40,9 @@ private:
   };
   
   UInt_t fMethod;
+  DDCalibPE     *fPECalib;
+  DDCalibAmp    *fAmpCalib;
+  DDCalibEnergy *fEnergyCalib;
   std::vector <DDCalibBase*> fCalibFunctions;
 
 public:

@@ -122,20 +122,18 @@ Bool_t DDCalib::ReadConfig(void){
       if(fMethod & ChargePeakCalib == 0){
         std::cerr << "##### Error in DDCalib::ReadConfig()! Incorrect syntax!" << std::endl;
         abort();
-      } //TODO
-//      for(Int_t i=0; i<fNPeaks; i++) {
-//	Float_t f1, f2, f3;
-//        config >> f1 >> f2 >> f3;
-//	if (fGausCalib)
-//	{
-//	  fGausCalib->AddPeak(f1, f2, f3);
-//	  if (fGausCalib->Validate())
-//	  {
-//	    fCalibFunctions.push_back(fGausCalib);
-//	    fGausCalib = nullptr;
-//	  }
-//	}
-//     }
+      }
+      if(!fPECalib)
+        fPECalib = new DDCalibPE(fNPeaks);
+      for(Int_t i=0; i<fNPeaks; i++){
+        Float_t par1, par2, par3;
+        config >> par1 >> par2 >> par3;
+        fPECalib->AddPeak(par1, par2, par3);
+      }
+      if(fPECalib->Validate()){
+        fCalibFunctions.push_back(fPECalib);
+        fPECalib = nullptr;
+      }
     }
     else if(dummy.Contains("FIT_MIN")){	//fit range for PE/Gaus callibration
       getline(config,line); 
@@ -143,15 +141,15 @@ Bool_t DDCalib::ReadConfig(void){
         std::cerr << "##### Error in DDCalib::ReadConfig()! Incorrect syntax!" << std::endl;
         abort();
       }
+      if(!fPECalib)
+	  fPECalib = new DDCalibPE(fNPeaks);
       Float_t minFit, maxFit;
-      config >> minFit >> maxFit;	//TODO
-//      if (fGausCalib)
-//	fGausCalib->SetRange(f1, f2);
-//      if (fGausCalib->Validate())
-//      {
-//	fCalibFunctions.push_back(fGausCalib);
-//	fGausCalib = nullptr;
-//      }
+      config >> minFit >> maxFit;
+      fPECalib->SetFitRange(minFit, maxFit);
+      if(fPECalib->Validate()){
+        fCalibFunctions.push_back(fPECalib);
+        fPECalib = nullptr;
+      }
     }
     else if(dummy.Contains("PEAK_MIN")){	//parameters for PE/Amp callibration
       getline(config,line);
@@ -159,14 +157,16 @@ Bool_t DDCalib::ReadConfig(void){
         std::cerr << "##### Error in DDCalib::ReadConfig()! Incorrect syntax!" << std::endl;
         abort();
       }
-      DDCalibAmp *ampCalib = new DDCalibAmp(fNPeaks);
+      fAmpCalib = new DDCalibAmp(fNPeaks);
       Float_t minAmp, maxAmp;
       for(Int_t i=0; i<fNPeaks; i++){
         config >> minAmp >> maxAmp;
-	ampCalib->AddPeak(minAmp, maxAmp);
+	fAmpCalib->AddPeak(minAmp, maxAmp);
       }
-      if(ampCalib->Validate())
-	fCalibFunctions.push_back(ampCalib);
+      if(fAmpCalib->Validate()){
+	fCalibFunctions.push_back(fAmpCalib);
+        fAmpCalib = nullptr;
+      }
       else{
 	std::cerr << "##### Error in DDCalib::ReadConfig()!" << std::endl;
 	std::cerr << "Problem with DDCalibAmp object!" << std::endl;
@@ -175,18 +175,20 @@ Bool_t DDCalib::ReadConfig(void){
     }
     else if(dummy.Contains("PEAK_ID")){		//parameters for energy callibration
       getline(config,line);
-      if(fMethod & EnergyPeakCalib ==0){
+      if(fMethod & EnergyPeakCalib == 0){
         std::cerr << "##### Error in DDCalib::ReadConfig()! Incorrect syntax!" << std::endl;
         abort();
       }
-      DDCalibEnergy *energyCalib = new DDCalibEnergy(fNPeaks);
+      fEnergyCalib = new DDCalibEnergy(fNPeaks);
       Float_t id, mean, sigma;
       for(Int_t i=0; i<fNPeaks; i++){
         config >> id >> mean >> sigma;
-	energyCalib->AddPeak(id, mean, sigma);
+	fEnergyCalib->AddPeak(id, mean, sigma);
       }
-      if(energyCalib->Validate())
-	fCalibFunctions.push_back(energyCalib);
+      if(fEnergyCalib->Validate()){
+	fCalibFunctions.push_back(fEnergyCalib);
+        fEnergyCalib = nullptr;
+      }
       else{
 	std::cerr << "##### Error in DDCalib::ReadConfig()!" << std::endl;
 	std::cerr << "Problem with DDCalibEnergy object!" << std::endl;
