@@ -1,6 +1,6 @@
 // *****************************************
 // *                                       *
-// *           DesktopDigitizer            *
+// *           DesktopDigitizer6           *
 // *             DDSignal.cc               *
 // *          Katarzyna Rusiecka           *
 // * katarzyna.rusiecka@doctoral.uj.edu.pl *

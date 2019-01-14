@@ -23,6 +23,7 @@ void DDCalibPE::AddPeak(Float_t constant, Float_t mean, Float_t sigma)
   fPeaks.push_back(peak);
   
   if(fPeaks.size()>fNPeaks){
+    std::cerr << "##### Error in DDCalibPE::AddPeak()!" << std::endl;
     std::cerr << "Too many peaks!" << std::endl;
     abort();
   }

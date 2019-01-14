@@ -1,6 +1,6 @@
 // *****************************************
 // *                                       *
-// *           DesktopDigitizer            *
+// *           DesktopDigitizer6           *
 // *            DDTreeMaker.hh             *
 // *          Katarzyna Rusiecka           *
 // * katarzyna.rusiecka@doctoral.uj.edu.pl *

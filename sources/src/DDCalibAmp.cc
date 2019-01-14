@@ -22,6 +22,7 @@ void DDCalibAmp::AddPeak(Float_t cutMin, Float_t cutMax)
   fPeaks.push_back(peak);
   
   if(fPeaks.size()>fNPeaks){
+   std::cerr << "##### Error in DDCalibAmp::AddPeak()!" << std::endl;
    std::cerr << "Too many peaks!" << std::endl;
    abort();
   }
