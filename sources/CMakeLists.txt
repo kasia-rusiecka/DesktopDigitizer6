@@ -1,11 +1,4 @@
-#----------------------------------------------
-# author: A.Bubak (arkadiusz@bubak.pl)
-# date: 2018.01.05
-# v0.01
-#----------------------------------------------
-
-
-#--- CMakeLists.txt for DD package.
+#--- CMakeLists.txt for DD6 package.
 cmake_minimum_required(VERSION 3.0 FATAL_ERROR)
 project(DesktopDigitizer6)
 
