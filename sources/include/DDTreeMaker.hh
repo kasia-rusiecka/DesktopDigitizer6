@@ -17,57 +17,54 @@
 #include "TTree.h"
 #include "TFile.h"
 #include "TString.h"
-#include "DDSignal.hh"
+#include "DDSignalPE.hh"
+#include "DDSignalEnergy.hh"
 #include <iostream>
 #include <fstream>
 #include <vector>
 #include <stdlib.h>
 
-class DDSignal;
-
-using namespace std;
-
 class DDTreeMaker : public TObject{
   
 private:
-  TString  fPath;               ///< Path to the data files
-  Int_t    fNch;                ///< Number of channels to be analyzed 
-  TString  fCoding;             ///< Data file coding: BINARY or ASCII
-  TString  fPolarity;           ///< Signal polarity: NEGATIVE or POSITIVE
-  TString  fOption;             ///< Analysis mode: CF, FT or both
-  TString  fIntegrationMode;    //LIMIT - for fixed signal duration, TOT for time over threshold
-  Float_t  fLimit;              //for LIMIT integration mode - duration of the signal
-  Float_t  fSlope;
-  Float_t  fConst;
-  TFile*   fFile;               //results ROOT file
-  TTree*   fTreeFT;             //tree (fixed threshold)
-  TTree*   fTreeCF;             //tree (constant fraction)
-  vector <Double_t> fCalib;         ///< Vector containing calibration factors for charge to PE conversion for each channel
-  vector <Int_t> fChannels;         ///< Vector containing list of channels to be analyzed
-  vector <Double_t> fThresholds;    ///< Vector containing list of thresholds for each analyzed channel
-  vector <Double_t> fFractions;     ///< Vector containing list of fraction for each analyzed channel
+  TString fPath;               ///< Path to the data files
+  int     fNch;                ///< Number of channels to be analyzed 
+  TString fCoding;             ///< Data file coding: BINARY or ASCII
+  TString fPolarity;           ///< Signal polarity: NEGATIVE or POSITIVE
+  TString fOption;             ///< Analysis mode: CF, FT or both
+  TString fIntegrationMode;    //LIMIT - for fixed signal duration, TOT for time over threshold
+  float   fLimit;              //for LIMIT integration mode - duration of the signal
+  float   fSlope;
+  float   fConst;
+  TFile*  fFile;                   //results ROOT file
+  TTree*  fTreeFT;                 //tree (fixed threshold)
+  TTree*  fTreeCF;                 //tree (constant fraction)
+  vector <double>  fCalib;         ///< Vector containing calibration factors for charge to PE conversion for each channel
+  vector <int>     fChannels;      ///< Vector containing list of channels to be analyzed
+  vector <double>  fThresholds;    ///< Vector containing list of thresholds for each analyzed channel
+  vector <double>  fFractions;     ///< Vector containing list of fraction for each analyzed channel
   vector <TString> fCalibMethod;
 
-  vector <DDSignal*> fSignal;       ///< Vector containing DDSignals for each channel
-  vector <TBranch*>  fBranch;       ///< Vector containing branches of the tree
+  vector <DDSignalBase*> fSignal;       ///< Vector containing DDSignals for each channel
+  vector <TBranch*>      fBranch;       ///< Vector containing branches of the tree
   
-  Float_t  fSamples[1024];          ///< Table containing samples (amplitudes) in one signal 
-  Int_t    fTime[1024];             ///< Table containing time for each sample pf the signal
+  float  fSamples[1024];          ///< Table containing samples (amplitudes) in one signal 
+  int    fTime[1024];             ///< Table containing time for each sample of the signal
   
 public:
   DDTreeMaker();
   DDTreeMaker(TString path);
   ~DDTreeMaker();
   
-  Bool_t  ReadConfig(void);
-  Bool_t  FindCoding(void);
-  Bool_t  MakeTree(void);
-  Bool_t  AnalyzeChannel(Int_t channel, TString mode);
-  Float_t FindAmplitude(void);
-  Float_t FindT0(Int_t index, Float_t amplitude, TString mode);
-  Float_t FindTOT(Int_t index, Float_t amplitude, Float_t t0, TString mode);
-  Float_t FindCharge(Float_t t0, Float_t tot);
-  Float_t CalibrateCharge(Int_t ch, Float_t charge);
+  bool  ReadConfig(void);
+  bool  FindCoding(void);
+  bool  MakeTree(void);
+  bool  AnalyzeChannel(int channel, TString mode);
+  float FindAmplitude(void);
+  float FindT0(int index, float amplitude, TString mode);
+  float FindTOT(int index, float amplitude, float t0, TString mode);
+  float FindCharge(float t0, float tot);
+  float CalibrateCharge(int ch, float charge);
   
   void   Print(void);
 

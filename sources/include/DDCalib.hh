@@ -17,6 +17,8 @@
 #include "TTree.h"
 #include "TSpectrum.h"
 #include "DDSignal.hh"
+#include "DDSignalPE.hh"
+#include "DDCalibEnergy.hh"
 #include "DDCalibPE.hh"
 #include "DDCalibAmp.hh"
 #include "DDCalibEnergy.hh"
@@ -27,8 +29,8 @@ class DDCalib : public TObject{
   
 private:
   TString fPath;
-  Int_t   fCh;
-  Int_t   fNPeaks;
+  int     fCh;
+  int     fNPeaks;
   TFile*  fInputFile; 
   TFile*  fOutputFile;
   TTree*  fTree;
@@ -39,7 +41,7 @@ private:
     EnergyPeakCalib = 0x04
   };
   
-  UInt_t fMethod;
+  unsigned int   fMethod;
   DDCalibPE     *fPECalib;
   DDCalibAmp    *fAmpCalib;
   DDCalibEnergy *fEnergyCalib;
@@ -49,9 +51,9 @@ public:
   DDCalib(TString path);
   ~DDCalib();
   
-  Bool_t ReadConfig(void);
-  Bool_t GetTree(void);
-  Bool_t Calibrate(void);
+  bool ReadConfig(void);
+  bool GetTree(void);
+  bool Calibrate(void);
   void   Print(void);
   
   ClassDef(DDCalib,1)

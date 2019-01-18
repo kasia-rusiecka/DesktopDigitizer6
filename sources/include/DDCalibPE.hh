@@ -25,24 +25,24 @@ class DDCalibPE : public DDCalibBase{
   
 public:
   struct GausPeak{
-    Float_t fConst;
-    Float_t fMean;
-    Float_t fSigma;
+    float fConst;
+    float fMean;
+    float fSigma;
   };
   
 private:
-  Float_t fFitMin;
-  Float_t fFitMax;
+  float fFitMin;
+  float fFitMax;
   
   std::vector <GausPeak> fPeaks;
   
 public:
-  DDCalibPE(Int_t npeaks) : DDCalibBase(npeaks) {}
+  DDCalibPE(int npeaks) : DDCalibBase(npeaks) {}
   
-  void SetFitRange(Float_t min, Float_t max) { fFitMin = min; fFitMax = max; }
-  void AddPeak(Float_t constant, Float_t mean, Float_t sigma);
-  Bool_t Validate() const override;
-  Bool_t Calibrate(TTree *tree, Int_t ch, TFile *file = 0) override;
+  void SetFitRange(float min, float max) { fFitMin = min; fFitMax = max; }
+  void AddPeak(float constant, float mean, float sigma);
+  bool Validate() const override;
+  bool Calibrate(TTree *tree, int ch, TFile *file = 0) override;
   
   //ClassDef(DDCalibPE,1)
 };

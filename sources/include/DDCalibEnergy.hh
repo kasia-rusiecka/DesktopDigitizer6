@@ -26,20 +26,20 @@ class DDCalibEnergy : public DDCalibBase{
   
 public:
   struct EnergyPeak{
-    Int_t fPeakID;
-    Float_t fMean;
-    Float_t fSigma;
+    int fPeakID;
+    float fMean;
+    float fSigma;
   };
   
 private:
   std::vector <EnergyPeak> fPeaks;
   
 public:
-  DDCalibEnergy(Int_t npeaks) : DDCalibBase(npeaks) {}
+  DDCalibEnergy(int npeaks) : DDCalibBase(npeaks) {}
   
-  void AddPeak(Float_t id, Float_t mean, Float_t sigma);
-  Bool_t Validate() const override;
-  Bool_t Calibrate(TTree *tree, Int_t ch, TFile *file = 0) override;
+  void AddPeak(float id, float mean, float sigma);
+  bool Validate() const override;
+  bool Calibrate(TTree *tree, int ch, TFile *file = 0) override;
   
   //ClassDef(DDCalibEnergy,1)
 };

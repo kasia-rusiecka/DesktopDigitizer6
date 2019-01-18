@@ -9,7 +9,8 @@
 // *****************************************
 
 #include "DDTreeMaker.hh" 
-#include "DDSignal.hh"
+#include "DDSignalPE.hh"
+#include "DDSignalEnergy.hh"
 #include <iostream>
 using namespace std;
 

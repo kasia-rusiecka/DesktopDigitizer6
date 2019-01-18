@@ -17,12 +17,12 @@
 class DDCalibBase : public TObject{
   
 protected:
-  const Int_t fNPeaks;
+  const int fNPeaks;
   
 public:
-  DDCalibBase(Int_t npeaks) : fNPeaks(npeaks) {}
-  virtual Bool_t Validate() const = 0;
-  virtual Bool_t Calibrate(TTree *tree, Int_t ch, TFile *file = 0) = 0;
+  DDCalibBase(int npeaks) : fNPeaks(npeaks) {}
+  virtual bool Validate() const = 0;
+  virtual bool Calibrate(TTree *tree, int ch, TFile *file = 0) = 0;
   
   ClassDef(DDCalibBase,1)
 };

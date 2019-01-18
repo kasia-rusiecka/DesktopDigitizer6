@@ -26,19 +26,19 @@ class DDCalibAmp : public DDCalibBase{
   
 public:
   struct AmpPeak{
-   Float_t fCutMin;
-   Float_t fCutMax;
+   float fCutMin;
+   float fCutMax;
   };
   
 private:
   std::vector <AmpPeak> fPeaks;
   
 public:
-  DDCalibAmp(Int_t npeaks) : DDCalibBase(npeaks) {}
+  DDCalibAmp(int npeaks) : DDCalibBase(npeaks) {}
   
-  void AddPeak(Float_t cutMin, Float_t cutMax);
-  Bool_t Validate() const override;
-  Bool_t Calibrate(TTree *tree, Int_t ch, TFile *file = 0) override;
+  void AddPeak(float cutMin, float cutMax);
+  bool Validate() const override;
+  bool Calibrate(TTree *tree, int ch, TFile *file = 0) override;
   
   //ClassDef(DDCalibAmp,1)
 };
