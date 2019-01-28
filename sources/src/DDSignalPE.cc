@@ -25,27 +25,27 @@ DDSignalPE::DDSignalPE() : DDSignalBase(),
 /// \param pe - calibrated charge [PE]
 DDSignalPE::DDSignalPE(float amp, float t0, float tot, float charge, float pe) : 
                        DDSignalBase(amp, t0, tot, charge),
-                       fPE(pe) {}
-//------------------------------------------------------------------
-/// Standard constructor.
-DDSignalPE::DDSignalPE(std::vector <float> parameters) : 
-                       fAmp(parameters[0]),
-		       fT0(parameters[1]),
-		       fTOT(parameters[2]),
-		       fCharge(parameters[3]),
-		       fPE(parameters[4]) {}
-		       
+                       fPE(pe) {}    
 //------------------------------------------------------------------
 /// Standard destructor.
 DDSignalPE::~DDSignalPE(){
 }
 //------------------------------------------------------------------
+/// Sets all parameters of the signal.
+/// \param parameters - vector containing parameters in the following 
+/// order: amplitude, T0, TOT, charge, calibrated charge.
 void DDSignalPE::SetAll(std::vector <float> parameters){
- fAmp    = parameters[0];
- fT0     = parameters[1];
- fTOT    = parameters[2];
- fCharge = parameters[3];
- fPE     = parameters[4];
+ 
+ std::size_t i = parameters.size();
+ if(i<5){
+   std::cerr << "##### Error in DDSignalPE::SetAll()" << std::endl;
+   std::cerr << "Not sufficient number of parameters! Expected 5 parameters!" << std::endl;
+   abort();
+ }
+  
+ DDSignalBase::SetAll(parameters);
+ fPE = parameters[4];
+ 
  return;
 }
 //------------------------------------------------------------------
@@ -58,14 +58,14 @@ void DDSignalPE::Clear(void){
 //------------------------------------------------------------------
 /// Prints details of the DDSignalPE class object.
 void DDSignalPE::Print(void){
-  std::cout << "\n\n------------------------------------------------" << std::endl;
-  std::cout << "This is Print() for DDSignalPE class object" << std::endl;
-  std::cout << "Amplitude = " << fAmp << " mV" << std::endl;
-  std::cout << "T0 = " << fT0 << " ns" << std::endl;
-  std::cout << "Time over threshold = " << fTOT << " ns" << std::endl;
-  std::cout << "Charge (signal integral) = " << fCharge << std::endl;
-  std::cout << "Calibrated charge = " << fPE << " PE" << std::endl;
-  std::cout << "------------------------------------------------\n" << std::endl;
-  return;
+ std::cout << "\n\n------------------------------------------------" << std::endl;
+ std::cout << "This is Print() for DDSignalPE class object" << std::endl;
+ std::cout << "Amplitude = " << fAmp << " mV" << std::endl;
+ std::cout << "T0 = " << fT0 << " ns" << std::endl;
+ std::cout << "Time over threshold = " << fTOT << " ns" << std::endl;
+ std::cout << "Charge (signal integral) = " << fCharge << std::endl;
+ std::cout << "Calibrated charge = " << fPE << " PE" << std::endl;
+ std::cout << "------------------------------------------------\n" << std::endl;
+ return;
 }
 //------------------------------------------------------------------
