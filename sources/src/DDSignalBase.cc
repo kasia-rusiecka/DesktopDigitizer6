@@ -20,26 +20,17 @@ DDSignalBase::DDSignalBase() : fAmp(-100),
                                fCharge(-100) {}
 //------------------------------------------------------------------
 /// Standard constructor.
-/// \param amplitude - signal amplitude [mV]
+/// \param amp - signal amplitude [mV]
 /// \param t0 - time T0 [ns]
 /// \param tot - time over threshold [mV]
-/// \param charge - signal integral (uncalibrated charge)
+/// \param charge - signal integral (uncalibrated charge) [a.u.]
 DDSignalBase::DDSignalBase(float amp, float t0, float tot, float charge) : 
                            fAmp(amp), 
                            fT0(t0), 
                            fTOT(tot), 
                            fCharge(charge) {}
 //------------------------------------------------------------------
-/// Standard constructor.
-/// \param parameters - vector containing values of the signal 
-/// parameters in the following order: amplitude, T0, TOT, charge.
-DDSignalBase::DDSignalBase(std::vector <float> parameters) : 
-                           fAmp(parameters[0]), 
-                           fT0(parameters[1]),
-                           fTOT(parameters[2]),
-                           fCharge(parameters[3]) {}
-//------------------------------------------------------------------
-/// Default destructor
+/// Default destructor.
 DDSignalBase::~DDSignalBase(){ 
 }
 //------------------------------------------------------------------
@@ -47,10 +38,19 @@ DDSignalBase::~DDSignalBase(){
 /// \param parameters - vector containing values of the signal 
 /// parameters in the following order: amplitude, T0, TOT, charge.
 void DDSignalBase::SetAll(std::vector <float> parameters){
+  
+ std::size_t i = parameters.size();
+ if(i<4){
+   std::cerr << "##### Error in DDSignalEnergy::SetAll()" << std::endl;
+   std::cerr << "Not sufficient number of parameters! Expected 4 parameters!" << std::endl;
+   abort();
+ }
+ 
  fAmp    = parameters[0];
  fT0     = parameters[1];
  fTOT    = parameters[2];
  fCharge = parameters[3];
+ 
  return;
 }
 //------------------------------------------------------------------
@@ -63,7 +63,7 @@ void DDSignalBase::Clear(void){
  return;
 }
 //------------------------------------------------------------------
-/// Prints details of the DDSignal class object.
+/// Prints details of the DDSignalBase class object.
 void DDSignalBase::Print(void){
   std::cout << "\n\n------------------------------------------------" << std::endl;
   std::cout << "This is Print() for DDSignalBase class object" << std::endl;

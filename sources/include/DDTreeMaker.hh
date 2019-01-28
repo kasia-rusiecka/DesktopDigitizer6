@@ -11,9 +11,6 @@
 #ifndef __DDTreeMaker_H_
 #define __DDTreeMaker_H_ 1
 #include "TObject.h"
-#include "TH1F.h"
-#include "TF1.h"
-#include "TGraphErrors.h"
 #include "TTree.h"
 #include "TFile.h"
 #include "TString.h"
@@ -24,6 +21,40 @@
 #include <vector>
 #include <stdlib.h>
 
+/// Class for analysis of regular (non-calibration) 
+/// measurements. Based on the provided configuration
+/// file data recorded with the Desktop Digitizer are 
+/// read and anayzed signal after signal. Signals 
+/// parameters are saved in the ROOT's tree, in separate
+/// branches for each analyzed channel. 
+/// 
+/// Configuration file "config.txt" should be stored in 
+/// the same directory as the data files from the Desktop
+/// Digitizer. 
+///
+/// Configuration file syntax:
+/// * NCH - number of channels for analysis, should be 
+/// integer between 0 and 16
+/// * POL - signal polarity, available optiopns: POSITIVE
+/// or NEGATIVE
+/// * OPT - analysis mode, available options: CF for constant 
+/// fraction analysis, FT for fixed threshold analysis
+/// * INT - signal integration method, available options are:
+/// * LIMIT for fixed integration time or TOT for time over
+/// threshold integration. Additionally, if LIMIT is chosen
+/// the integration window in ns should be given as next parameter.
+/// * CH_LIST THR FRAC CALIB_MET CALIB_FAC - respectively:
+/// channel list, thresholds (for FT analysis), fractions
+/// (for CF analysis), calibration method, calibration factor. 
+/// Available calibration methods are: PE for PE calibration or 
+/// EN for energy calibration. For the PE calibration one calibrating 
+/// factor is needed, while for the energy calibration two factors are 
+/// expected (slope, constant). All parameters should be given in rows
+/// for respective channel numbers.
+///
+/// All of the parameters can be listed in the configuration file in 
+/// any order. 
+
 class DDTreeMaker : public TObject{
   
 private:
@@ -32,21 +63,32 @@ private:
   TString fCoding;             ///< Data file coding: BINARY or ASCII
   TString fPolarity;           ///< Signal polarity: NEGATIVE or POSITIVE
   TString fOption;             ///< Analysis mode: CF, FT or both
-  TString fIntegrationMode;    //LIMIT - for fixed signal duration, TOT for time over threshold
-  float   fLimit;              //for LIMIT integration mode - duration of the signal
-  float   fSlope;
-  float   fConst;
-  TFile*  fFile;                   //results ROOT file
-  TTree*  fTreeFT;                 //tree (fixed threshold)
-  TTree*  fTreeCF;                 //tree (constant fraction)
-  vector <double>  fCalib;         ///< Vector containing calibration factors for charge to PE conversion for each channel
-  vector <int>     fChannels;      ///< Vector containing list of channels to be analyzed
-  vector <double>  fThresholds;    ///< Vector containing list of thresholds for each analyzed channel
-  vector <double>  fFractions;     ///< Vector containing list of fraction for each analyzed channel
-  vector <TString> fCalibMethod;
+  TString fIntegrationMode;    ///< Method of signal integration: LIMIT - for 
+                               ///< fixed signal duration, TOT for time over threshold
+  float   fLimit;              ///< Duration of the signal (if LIMIT integration chosen)
+  
+public:
+  // Structure containing calibration details
+  // for a given channel
+  struct Calibration{
+    TString fCalibMethod;      ///< Calibration method: PE or EN
+    int fCh;                   ///< Channel number
+    float fEnSlope;            ///< Slope for energy calibration
+    float fEnConst;            ///< Constant for energy calibraion
+    float fCalibPE;            ///< Calibration factors for charge to PE conversion
+  };
+  
+private:
+  TFile*  fFile;                        ///< Results ROOT file
+  TTree*  fTreeFT;                      ///< Tree contining data analyzed with Fixed Threshold
+  TTree*  fTreeCF;                      ///< Tree containing data analyzed with Constant Fraction
+  std::vector <int>     fChannels;      ///< Vector containing list of channels to be analyzed
+  std::vector <double>  fThresholds;    ///< Vector containing list of thresholds for each analyzed channel
+  std::vector <double>  fFractions;     ///< Vector containing list of fraction for each analyzed channel
 
-  vector <DDSignalBase*> fSignal;       ///< Vector containing DDSignals for each channel
-  vector <TBranch*>      fBranch;       ///< Vector containing branches of the tree
+  std::vector <DDSignalBase*> fSignal;       ///< Vector containing DDSignals for each channel
+  std::vector <TBranch*>      fBranch;       ///< Vector containing branches of the tree
+  std::vector <Calibration>   fCalib;        ///< Vector containing calibration details for each channel
   
   float  fSamples[1024];          ///< Table containing samples (amplitudes) in one signal 
   int    fTime[1024];             ///< Table containing time for each sample of the signal
@@ -65,8 +107,7 @@ public:
   float FindTOT(int index, float amplitude, float t0, TString mode);
   float FindCharge(float t0, float tot);
   float CalibrateCharge(int ch, float charge);
-  
-  void   Print(void);
+  void  Print(void);
 
   ClassDef(DDTreeMaker,1)
 };

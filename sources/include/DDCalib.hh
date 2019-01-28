@@ -16,14 +16,17 @@
 #include "TFile.h"
 #include "TTree.h"
 #include "TSpectrum.h"
-#include "DDSignal.hh"
+#include "DDSignalBase.hh"
 #include "DDSignalPE.hh"
+#include "DDSignalEnergy.hh"
 #include "DDCalibEnergy.hh"
 #include "DDCalibPE.hh"
 #include "DDCalibAmp.hh"
 #include "DDCalibEnergy.hh"
 #include <string>
 #include <fstream>
+
+//
 
 class DDCalib : public TObject{
   
@@ -54,7 +57,7 @@ public:
   bool ReadConfig(void);
   bool GetTree(void);
   bool Calibrate(void);
-  void   Print(void);
+  void Print(void);
   
   ClassDef(DDCalib,1)
 };

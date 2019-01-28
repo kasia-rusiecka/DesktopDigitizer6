@@ -22,25 +22,36 @@
 #include <stdlib.h>
 #include <iostream>
 
+// 
+
 class DDCalibAmp : public DDCalibBase{
   
 public:
+  /// Structure representing single peak in the amplitude spectrum.
+  /// It's members identify the peak (fNPE) and are used to impose 
+  /// cuts on the charge spectrum in the calibration procedure (fCutMin,
+  /// fCutMax).
   struct AmpPeak{
-   float fCutMin;
-   float fCutMax;
+   int   fNPE;          ///< Number of photoelectrons corresponding to the 
+                        ///< peak in the amplitude spectrum
+   float fCutMin;       ///< Lower range of the peak 
+   float fCutMax;       ///< Upper range of the peak 
   };
   
 private:
-  std::vector <AmpPeak> fPeaks;
+  std::vector <AmpPeak> fPeaks;   ///< Vector containing all the peaks in the amplitude  
+                                  ///< spectrum for the calibration procedure
   
 public:
+  /// Standard constructor 
+  /// \param npeaks - number of peaks for the cilbration
   DDCalibAmp(int npeaks) : DDCalibBase(npeaks) {}
   
   void AddPeak(float cutMin, float cutMax);
-  bool Validate() const override;
-  bool Calibrate(TTree *tree, int ch, TFile *file = 0) override;
+  bool Validate() const;
+  bool Calibrate(TTree *tree, int ch, TFile *file = 0);
   
-  //ClassDef(DDCalibAmp,1)
+  ClassDef(DDCalibAmp,1)
 };
 
 #endif

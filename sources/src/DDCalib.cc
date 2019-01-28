@@ -45,28 +45,28 @@ DDCalib::~DDCalib(){
   if(fInputFile->IsOpen()) fInputFile->Close();
 }
 //------------------------------------------------------------------
-Bool_t DDCalib::GetTree(void){
+bool DDCalib::GetTree(void){
   
-  fTree = (TTree*)fInputFile->Get("tree_cf");
+  fTree = (TTree*)fInputFile->Get("tree_ft");
   
   if(fTree!=nullptr){
-    std::cout << "\nIn DDCalib::GetTree(). Accessing Constant Fraction data..." << std::endl;
-    return kTRUE;
+    std::cout << "\nIn DDCalib::GetTree(). Accessing Fixed Threshold data..." << std::endl;
+    return true;
   }
   else{
-    fTree = (TTree*)fInputFile->Get("tree_ft");
+    fTree = (TTree*)fInputFile->Get("tree_cf");
     if(fTree==nullptr){
      std::cerr << "\n##### Error in DDCalib::GetTree()! Could not access data!"<< std::endl;
-     return kFALSE;
+     return false;
     }
     else{
-        std::cout << "\nIn DDCalib::GetTree(). Accessing Fixed Threshold data..." << std::endl;
-        return kTRUE;
+        std::cout << "\nIn DDCalib::GetTree(). Accessing Constant Fraction data..." << std::endl;
+        return true;
     }
   }
 }
 //------------------------------------------------------------------
-Bool_t DDCalib::ReadConfig(void){
+bool DDCalib::ReadConfig(void){
   
   TString dummy;
   std::string line;
@@ -97,7 +97,7 @@ Bool_t DDCalib::ReadConfig(void){
         abort();
       }
     }
-    else if(dummy.Contains("CAL")){	//callibration method
+    else if(dummy.Contains("CAL")){	//calibration method
       TString method;
       config >> method;
       if(method=="PE_CUT")       fMethod |= AmplitudePeakCalib;
@@ -117,7 +117,7 @@ Bool_t DDCalib::ReadConfig(void){
         abort();
       }
     }
-    else if(dummy.Contains("CONST")){	//parameters for PE/Gaus callibration
+    else if(dummy.Contains("CONST")){	//parameters for PE/charge callibration
       getline(config,line);
       if(fMethod & ChargePeakCalib == 0){
         std::cerr << "##### Error in DDCalib::ReadConfig()! Incorrect syntax!" << std::endl;
@@ -135,7 +135,7 @@ Bool_t DDCalib::ReadConfig(void){
         fPECalib = nullptr;
       }
     }
-    else if(dummy.Contains("FIT_MIN")){	//fit range for PE/Gaus callibration
+    else if(dummy.Contains("FIT_MIN")){	//fit range for PE/charge calibration
       getline(config,line); 
       if(fMethod & ChargePeakCalib == 0){
         std::cerr << "##### Error in DDCalib::ReadConfig()! Incorrect syntax!" << std::endl;
@@ -151,7 +151,7 @@ Bool_t DDCalib::ReadConfig(void){
         fPECalib = nullptr;
       }
     }
-    else if(dummy.Contains("PEAK_MIN")){	//parameters for PE/Amp callibration
+    else if(dummy.Contains("PEAK_MIN")){	//parameters for PE/Amp calibration
       getline(config,line);
       if(fMethod & AmplitudePeakCalib == 0){
         std::cerr << "##### Error in DDCalib::ReadConfig()! Incorrect syntax!" << std::endl;
@@ -173,7 +173,7 @@ Bool_t DDCalib::ReadConfig(void){
 	abort();
       }
     }
-    else if(dummy.Contains("PEAK_ID")){		//parameters for energy callibration
+    else if(dummy.Contains("PEAK_ID")){		//parameters for energy calibration
       getline(config,line);
       if(fMethod & EnergyPeakCalib == 0){
         std::cerr << "##### Error in DDCalib::ReadConfig()! Incorrect syntax!" << std::endl;
@@ -205,7 +205,7 @@ Bool_t DDCalib::ReadConfig(void){
   
   config.close();
   
-  return kTRUE;
+  return true;
 }
 //------------------------------------------------------------------
 Bool_t DDCalib::Calibrate(void){

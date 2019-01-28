@@ -12,6 +12,10 @@
 #define __DDSignalPE_H_ 1
 #include "DDSignalBase.hh"
 
+/// Class derived from DDSignalBase, describing signal 
+/// properties. It contains extra parameter representing 
+/// charge calibrated to PE.
+
 class DDSignalPE : public DDSignalBase{
   
 private:
@@ -20,13 +24,12 @@ private:
 public:  
   DDSignalPE();
   DDSignalPE(float amp, float t0, float tot, float charge, float pe);
-  DDSignalPE(std::vector <float> parameters);
   ~DDSignalPE();
   
-  ///Sets calibrated charge in PE
-  void  SetPE(float pe){ fPE = pe; };
-  ///Returns calibrated charge in PE
-  float GetPE(void){ return fPE; };
+  /// Sets calibrated charge in PE
+  void  SetCalibrated(float pe){ fPE = pe; }
+  /// Returns calibrated charge in PE
+  float GetCalibrated(void){ return fPE; }
   
   void  SetAll(std::vector <float> parameters);
   void  Clear(void);

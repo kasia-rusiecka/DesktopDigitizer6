@@ -28,7 +28,7 @@ Double_t CalculateBaseLine(Int_t channel, TString path){
   Double_t sigma = 0.;
   
   DDTreeMaker *maker = new DDTreeMaker(path);
-  maker->FindBaseLine(channel,kFALSE,baseLine,sigma);
+  //maker->FindBaseLine(channel,kFALSE,baseLine,sigma);
   delete maker;
   
   return baseLine;
@@ -65,17 +65,18 @@ Bool_t SignalsViewer(Int_t channel0, Int_t channel1,Int_t ylimit, bool BL){
       input0.read((char*)&x,sizeof(x));
       input1.read((char*)&y,sizeof(y));
 
-      h0->SetBinContent(i,x/4.096);
-      h1->SetBinContent(i,y/4.096);
+      h0->SetBinContent(i,x);//4.096);
+      h1->SetBinContent(i,y);//4.096);
     
     }
-    for(Int_t i=0; i<50; i++){
+    for(Int_t i=0; i<1024; i++){
       baseLine0+=h0->GetBinContent(i);
       baseLine1+=h1->GetBinContent(i);
     }
     
-    baseLine0=baseLine0/50;
-    baseLine1=baseLine1/50;
+    baseLine0=baseLine0/1024;
+    baseLine1=baseLine1/1024;
+    cout << baseLine0 << "\t" << baseLine1 << endl;
     if(BL){
       for(Int_t i=0; i<ipoints; i++){
 	h0->SetBinContent(i,h0->GetBinContent(i)-baseLine0);
@@ -143,7 +144,7 @@ Bool_t SignalsViewer(Int_t channel, bool BL){
   
   return kTRUE;
 }
-
+/*
 Bool_t CutAndView(Int_t channel, TString mode, Double_t xmin, Double_t xmax,Int_t Number){
   
   Int_t ipoints=1024;
@@ -326,4 +327,4 @@ Bool_t CutAndView(Int_t channel, TString mode, Double_t xmin, Double_t xmax,Int_
   }
   
   return kTRUE;
-}
+}*/

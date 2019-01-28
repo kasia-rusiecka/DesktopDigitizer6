@@ -15,6 +15,11 @@
 #include <vector>
 #include <stdlib.h>
 
+/// Class containing basic parameters describing the signal.
+/// This is base class for DDSignalPE and DDSignalEnergy,
+/// which contain additional information about charge
+/// cnverted into PE or energy respectively. 
+
 class DDSignalBase : public TObject{
   
 protected:
@@ -37,6 +42,9 @@ public:
   void SetTOT(float tot){ fTOT = tot; };
   /// Sets uncalibrated charge, i.e. signal integral
   void SetCharge(float charge){ fCharge = charge; };
+  /// Sets value of the calibrated charge or energy,
+  /// depending on derived type
+   virtual void SetCalibrated(float x) = 0;
   /// Returns signal amplitude in mV
   float GetAmplitude(void){ return fAmp; };
   /// Returns time T0 in ns
@@ -45,6 +53,9 @@ public:
   float GetTOT(void){ return fTOT; };
   /// Returns uncalibrated charge, i.e. signal integral
   float GetCharge(void){ return fCharge; };
+  /// Returns value of calibrated charge or energy, 
+  /// depending on derived type
+  virtual float GetCalibrated(void) = 0;
   
   virtual void SetAll(std::vector <float> parameters);
   virtual void Clear(void);

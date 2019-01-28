@@ -9,7 +9,6 @@
 // *****************************************
 
 #include "DDTreeMaker.hh"
-using namespace std;
 
 ClassImp(DDTreeMaker);
 
@@ -23,11 +22,12 @@ DDTreeMaker::DDTreeMaker() : fPath(""),
                              fOption(""),
                              fIntegrationMode(""), 
                              fNch(0), fLimit(0),
-                             fFile(NULL), 
-                             fTreeFT(NULL), 
-                             fTreeCF(NULL) {
+                             fFile(nullptr), 
+                             fTreeFT(nullptr), 
+                             fTreeCF(nullptr) {
        
-  cout << "##### Warning in DDTreeMaker Constructor! You are using default constructor." << endl;
+  std::cout << "##### Warning in DDTreeMaker Constructor!" << std::endl;
+  std::cout << "You are using default constructor!" << std::endl;
 }
 //------------------------------------------------------------------
 /// Standard constructor (recommended). 
@@ -39,9 +39,9 @@ DDTreeMaker::DDTreeMaker(TString path) : fPath(path),
                                          fIntegrationMode(""), 
                                          fNch(0), 
                                          fLimit(0),
-                                         fFile(NULL), 
-                                         fTreeFT(NULL), 
-                                         fTreeCF(NULL) {
+                                         fFile(nullptr), 
+                                         fTreeFT(nullptr), 
+                                         fTreeCF(nullptr) {
   
   TString fname = path+"results.root";
   fFile = new TFile(fname,"RECREATE");
@@ -49,15 +49,16 @@ DDTreeMaker::DDTreeMaker(TString path) : fPath(path),
   FindCoding();
   
   for(Int_t i=0; i<fNch; i++){
-    fSignal.push_back(new DDSignal());
+    if(fCalib[i].fCalibMethod.Contains("PE"))
+      fSignal.push_back(new DDSignalPE());
+    else if(fCalib[i].fCalibMethod.Contains("EN"))
+      fSignal.push_back(new DDSignalEnergy());
   }
 }
 //------------------------------------------------------------------
 /// Default destructor.
 DDTreeMaker::~DDTreeMaker(){
-  //SaveBaseLines();
-  if(fFile->IsOpen()) 
-    fFile->Close();
+  if(fFile->IsOpen()) fFile->Close();
 }
 //------------------------------------------------------------------
 /// Reads content of the config file config.txt and sets values to 
@@ -65,14 +66,14 @@ DDTreeMaker::~DDTreeMaker(){
 Bool_t DDTreeMaker::ReadConfig(void){
  
   TString dummy;
-  string line;
+  std::string line;
   
   TString config_name = fPath+"config.txt";
-  ifstream config(config_name);
+  std::ifstream config(config_name);
   
   if(!config.is_open()){
-   cout << "##### Error in DDTreeMaker::ReadConfig! Could not open config file!" << endl;
-   return kFALSE;
+   std::cerr << "##### Error in DDTreeMaker::ReadConfig! Could not open config file!" << std::endl;
+   return false;
   }
   
   while(config.good()){
@@ -81,78 +82,73 @@ Bool_t DDTreeMaker::ReadConfig(void){
     
     if(dummy.Contains("NCH")){
      config >> fNch;
-     cout << "N channels: " << fNch << endl;
-     if(fNch>16){
-      cout << "##### Error in DDTreeMaker::ReadConfig()!" << endl;
-      cout << "Number of channels cannot be larger than 16!" << endl;
-      return kFALSE;
+     if(fNch>16 && fNch<0){
+      std::cerr << "##### Error in DDTreeMaker::ReadConfig()!" << std::endl;
+      std::cerr << "Number of channels cannot be larger than 16 or smaller than 0!" << std::endl;
+      return false;
      }
      fChannels.resize(fNch);
-     fCalib.resize(fNch);
      fThresholds.resize(fNch);
      fFractions.resize(fNch);
-     fCalibMethod.resize(fNch);
     }
     else if(dummy.Contains("POL")){
      config >> fPolarity;
-     cout << "Polarity: " << fPolarity << endl;
      if(!(fPolarity=="NEGATIVE" || fPolarity=="POSITIVE")){
-      cout << "##### Error in DDTreeMaker::ReadConfig()!" << endl;
-      cout << "Unknown signal polarity!" << endl;
-      return kFALSE;
+      std::cerr << "##### Error in DDTreeMaker::ReadConfig()!" << std::endl;
+      std::cerr << "Unknown signal polarity! Possible options: NEGATIVE or POSITIVE" << std::endl;
+      return false;
      }
     }
     else if(dummy.Contains("OPT")){
      config >> fOption;
-     cout << "Option: " << fOption << endl; 
      if(!fOption.Contains("FT") && !fOption.Contains("CF")){
-      cout << "##### Error in DDTreeMaker::ReadConfig!" << endl;
-      cout << "Unknown analysis mode!" << endl;
-      return kFALSE;
+      std::cerr << "##### Error in DDTreeMaker::ReadConfig!" << std::endl;
+      std::cerr << "Unknown analysis mode! Possible options: FT or CF" << std::endl;
+      return false;
       }
     }
     else if(dummy.Contains("INT")){
      config >> fIntegrationMode; 
-     cout << "Integration mode: " << fIntegrationMode << endl;
      if(!(fIntegrationMode=="LIMIT" || fIntegrationMode=="TOT")){
-       cout << "##### Error in DDTreeMaker::ReadConfig!" << endl;
-       cout << "Unknown integration mode!" << endl;
-       return kFALSE;
+       std::cerr << "##### Error in DDTreeMaker::ReadConfig!" << std::endl;
+       std::cerr << "Unknown integration mode! Possible options: LIMIT or TOT" << std::endl;
+       return false;
      }
      if(fIntegrationMode=="LIMIT"){
        config >> fLimit;
-       cout << "Limit: " << fLimit << endl;
      }
     }
     else if(dummy.Contains("CH_LIST")){
      getline(config,line);
 
      for(Int_t i=0; i<fNch; i++){
-      config >> fChannels[i] >> fThresholds[i] >> fFractions[i] >> fCalibMethod[i];
-      fThresholds[i] = fThresholds[i]/4.096;	//recalculating from ADC channels to mV
-      if(fCalibMethod[i]=="PE"){ 
-	config >> fCalib[i];
+      fCalib.push_back(Calibration());
+      config >> fChannels[i] >> fThresholds[i] >> fFractions[i] >> fCalib[i].fCalibMethod;
+      fThresholds[i] = fThresholds[i]/4.096;   // recalculating from ADC channels to mV
+      if(fCalib[i].fCalibMethod=="PE"){ 
+	config >> fCalib[i].fCalibPE;
       }
-      else if(fCalibMethod[i]=="EN"){
-	config >> fSlope >> fConst;
+      else if(fCalib[i].fCalibMethod=="EN"){
+	config >> fCalib[i].fEnSlope >> fCalib[i].fEnConst;
       }
       else {
-	cerr << "Unknown calib method " << fCalibMethod[i].Data() << endl;
-	abort();
+	std::cerr << "##### Error in DDTreeMaker::ReadConfig()" << std::endl;
+	std::cerr << "Unknown calibration method. Possible options: PE or EN" << std::endl;
+	return false;
       }
      }
     }
     else{
-     cout << "##### Warning in DDTreeMaker::ReadConfig()!" << endl;
-     cout << "Unknown syntax, skipping line: " << endl;
+     std::cout << "##### Warning in DDTreeMaker::ReadConfig()!" << std::endl;
+     std::cout << "Unknown syntax, skipping line: " << std::endl;
      getline(config,line);
-     cout << line << endl;
+     std::cout << line << std::endl;
     }
   }
   
   config.close();
 
-  return kTRUE;
+  return true;
 }
 //------------------------------------------------------------------
 /// Checks data files coding: BINARY or ASCI.
@@ -160,8 +156,8 @@ Bool_t DDTreeMaker::FindCoding(void){
  
   TString fname_binary = fPath+Form("wave_%i.dat",fChannels[0]);
   TString fname_ascii = fPath+Form("wave_%i.txt",fChannels[0]);
-  ifstream input_binary(fname_binary, ios::binary);
-  ifstream input_ascii(fname_ascii);
+  std::ifstream input_binary(fname_binary, std::ios::binary);
+  std::ifstream input_ascii(fname_ascii);
   
   if(input_binary.is_open()){
     fCoding = "binary";
@@ -172,11 +168,11 @@ Bool_t DDTreeMaker::FindCoding(void){
     input_ascii.close();
   }
   else{
-   cout << "\n\n##### Error in DDTreeMaker::FindCoding()! Unknown file coding!\n\n" << endl;
-   return kFALSE;
+   std::cerr << "\n\n##### Error in DDTreeMaker::FindCoding()! Unknown file coding!\n\n" << std::endl;
+   return false;
   }
   
-  return kTRUE;
+  return true;
 }
 //------------------------------------------------------------------
 Bool_t DDTreeMaker::MakeTree(void){
@@ -192,7 +188,10 @@ Bool_t DDTreeMaker::MakeTree(void){
   
     for(Int_t i=0; i<fNch; i++){
       bname = Form("ch_%i",fChannels[i]);
-      fBranch[i] = fTreeFT->Branch(bname,"DDSignal",&fSignal[i]);
+      if(fCalib[i].fCalibMethod.Contains("PE"))
+        fBranch[i] = fTreeFT->Branch(bname,"DDSignalPE",&fSignal[i]);
+      else if(fCalib[i].fCalibMethod.Contains("EN"))
+	fBranch[i] = fTreeFT->Branch(bname,"DDSignalEnergy",&fSignal[i]);
       AnalyzeChannel(i,"FT");
     }
   
@@ -210,7 +209,10 @@ Bool_t DDTreeMaker::MakeTree(void){
   
     for(Int_t i=0; i<fNch; i++){
       bname = Form("ch_%i",fChannels[i]);
-      fBranch[i] = fTreeCF->Branch(bname,"DDSignal",&fSignal[i]);
+      if(fCalib[i].fCalibMethod.Contains("PE"))
+        fBranch[i] = fTreeCF->Branch(bname,"DDSignalPE",&fSignal[i]);
+      else if(fCalib[i].fCalibMethod.Contains("EN"))
+	fBranch[i] = fTreeCF->Branch(bname,"DDSignalEnergy",&fSignal[i]);
       AnalyzeChannel(i,"CF");
     }
   
@@ -221,7 +223,7 @@ Bool_t DDTreeMaker::MakeTree(void){
     fTreeCF->Write();
   }
   
-  return kTRUE;
+  return true;
 }
 //------------------------------------------------------------------
 Bool_t DDTreeMaker::AnalyzeChannel(Int_t index, TString mode){
@@ -229,14 +231,14 @@ Bool_t DDTreeMaker::AnalyzeChannel(Int_t index, TString mode){
   Int_t ch = fChannels[index];
   TString fname;
   float x;
-  ifstream input;
+  std::ifstream input;
   
-  cout << "\n----- CHANNEL " << ch << endl << endl;
+  std::cout << "\n----- CHANNEL " << ch << std::endl << std::endl;
     
   //opening input files 
   if(fCoding=="binary"){
     fname = fPath+Form("wave_%i.dat",ch);
-    input.open(fname, ios::binary);
+    input.open(fname, std::ios::binary);
   }
   else if(fCoding=="ascii"){
     fname = fPath+Form("wave_%i.txt",ch);
@@ -245,13 +247,13 @@ Bool_t DDTreeMaker::AnalyzeChannel(Int_t index, TString mode){
     
   //checking if input files are correctly opened
   if(!input.is_open()){
-   cout << "##### Error in DDTreeMaker::AnalyzeChannel! Could not open input file!" << endl;
-   cout << fname << endl;
-   return kFALSE;
+   std::cerr << "##### Error in DDTreeMaker::AnalyzeChannel! Could not open input file!" << std::endl;
+   std::cerr << fname << std::endl;
+   return false;
   }
     
   Double_t BL;      //base line  
-  Float_t amplitude, t0, tot, charge, pe;
+  Float_t amplitude, t0, tot, charge, calibrated;
    
   //reading input files
   while(input.good()){
@@ -287,15 +289,15 @@ Bool_t DDTreeMaker::AnalyzeChannel(Int_t index, TString mode){
     fSignal[index]->SetCharge(charge);
     
     //pe = charge/fCalib[index];
-    pe = CalibrateCharge(index,charge);
-    fSignal[index]->SetPE(pe);
+    calibrated = CalibrateCharge(index,charge);
+    fSignal[index]->SetCalibrated(calibrated);
     
     fBranch[index]->Fill();
   }
 
   input.close();
 
-  return kTRUE;
+  return true;
 }
 //------------------------------------------------------------------
 /// Finds amplitude of the analyzed signal as:
@@ -445,14 +447,16 @@ Float_t DDTreeMaker::CalibrateCharge(Int_t ch, Float_t charge){
 
   Float_t calibrated = 0;
   
-  if(fCalibMethod[ch]=="PE"){
-    calibrated = charge/fCalib[ch];
+  if(fCalib[ch].fCalibMethod=="PE"){
+    calibrated = charge/fCalib[ch].fCalibPE;
   }
-  else if(fCalibMethod[ch]=="EN"){
-    calibrated = charge*fSlope + fConst;
+  else if(fCalib[ch].fCalibMethod=="EN"){
+    calibrated = (charge*fCalib[ch].fEnSlope) + fCalib[ch].fEnConst;
   }
   else{
-    cout << "##### Error in DDTreeMaker::CalibrateCharge()! Unknown callibration method!" << endl;
+    std::cerr << "##### Error in DDTreeMaker::CalibrateCharge()!" << std::endl;
+    std::cerr<< "Unknown callibration method!" << std::endl;
+    abort();
   }
   
   return calibrated;
@@ -461,32 +465,33 @@ Float_t DDTreeMaker::CalibrateCharge(Int_t ch, Float_t charge){
 /// Prints details of the DDTreeMaker class object.
 void DDTreeMaker::Print(void){
  
-  cout << "\n\n------------------------------------------------" << endl;
-  cout << "This is DDTreeMaker class object for the measurement: " << fPath << endl; 
-  cout << "Number of analyzed channels: " << fNch << endl;
-  cout << "Used file coding: " << fCoding << endl;
-  cout << "Analysis mode: " << fOption << endl;
-  cout << "Polarity of signals: " << fPolarity << endl;
-  cout << "Integration mode (for charge determination): " << fIntegrationMode;
+  std::cout << "\n\n------------------------------------------------" << std::endl;
+  std::cout << "This is DDTreeMaker class object for the measurement: " << fPath << std::endl; 
+  std::cout << "Number of analyzed channels: " << fNch << std::endl;
+  std::cout << "Used file coding: " << fCoding << std::endl;
+  std::cout << "Analysis mode: " << fOption << std::endl;
+  std::cout << "Polarity of signals: " << fPolarity << std::endl;
+  std::cout << "Integration mode (for charge determination): " << fIntegrationMode;
   
-  if(fIntegrationMode=="LIMIT") cout << ";\t" << "Signal duration = " << fLimit << endl;
-  else if(fIntegrationMode=="TOT") cout << endl;
+  if(fIntegrationMode=="LIMIT") std::cout << ";\t" << "Signal duration = " << fLimit << std::endl;
+  else if(fIntegrationMode=="TOT") std::cout << std::endl;
   
-  cout << "Channel no \t Calib. method \tCalib. factor";
-  if(fOption.Contains("FT")) cout << "\t Threshold [mV]";
-  if(fOption.Contains("CF")) cout << "\t Fraction";
-  cout << endl;
+  std::cout << "Channel no \t Calib. method \tCalib. factor";
+  if(fOption.Contains("FT")) std::cout << "\t Threshold [mV]";
+  if(fOption.Contains("CF")) std::cout << "\t Fraction";
+  std::cout << std::endl;
   
   for(Int_t i=0; i<fNch; i++){
-    cout << fChannels[i] << "\t" << fCalibMethod[i];
-    if(fCalibMethod[i]=="PE") cout << "\t" << fCalib[i];
-    else if(fCalibMethod[i]=="EN")  cout << "\t" << fSlope << " " << fConst;
-    if(fOption.Contains("FT")) cout << "\t" << fThresholds[i];
-    if(fOption.Contains("CF")) cout << "\t" << fFractions[i];
-    cout << endl;
+    std::cout << fChannels[i] << "\t" << fCalib[i].fCalibMethod;
+    if(fCalib[i].fCalibMethod=="PE") std::cout << "\t" << fCalib[i].fCalibPE;
+    else if(fCalib[i].fCalibMethod=="EN")  std::cout << "\t" << fCalib[i].fEnSlope 
+                                              << " " << fCalib[i].fEnConst;
+    if(fOption.Contains("FT")) std::cout << "\t" << fThresholds[i];
+    if(fOption.Contains("CF")) std::cout << "\t" << fFractions[i];
+    std::cout << std::endl;
   }
-  cout << fFile->GetName() << endl;
-  cout << "------------------------------------------------\n" << endl;
+  std::cout << fFile->GetName() << std::endl;
+  std::cout << "------------------------------------------------\n" << std::endl;
   
   return;
 }

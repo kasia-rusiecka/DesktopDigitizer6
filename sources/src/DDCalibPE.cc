@@ -15,7 +15,7 @@ ClassImp(DDCalibPE);
 //------------------------------------------------------------------
 void DDCalibPE::AddPeak(Float_t constant, Float_t mean, Float_t sigma)
 {
-  GausPeak peak;
+  ChargePeak peak;
   peak.fConst = constant;
   peak.fMean = mean;
   peak.fSigma = sigma;
