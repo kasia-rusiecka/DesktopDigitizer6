@@ -18,7 +18,7 @@
 
 class DDSignalPE : public DDSignalBase{
   
-private:
+public:
   float fPE;	///< Calibrated charge [PE]
 
 public:  

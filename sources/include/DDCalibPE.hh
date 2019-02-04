@@ -50,7 +50,7 @@ public:
   /// Sets fitting range.
   /// \param min - fit minimum
   /// \param max - fit maximum
-  void SetFitRange(float min, float max) { fFitMin = min; fFitMax = max; }
+  void SetFitRange(float min, float max) { fFitMin = min; fFitMax = max; return; }
   void AddPeak(float constant, float mean, float sigma);
   bool Validate() const;
   bool Calibrate(TTree *tree, int ch, TFile *file = 0);

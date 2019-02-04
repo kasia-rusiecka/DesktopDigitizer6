@@ -117,7 +117,7 @@ bool DDCalib::ReadConfig(void){
         abort();
       }
     }
-    else if(dummy.Contains("CONST")){	//parameters for PE/charge callibration
+    else if(dummy.Contains("CONST")){	//parameters for PE/charge calibration
       getline(config,line);
       if(fMethod & ChargePeakCalib == 0){
         std::cerr << "##### Error in DDCalib::ReadConfig()! Incorrect syntax!" << std::endl;

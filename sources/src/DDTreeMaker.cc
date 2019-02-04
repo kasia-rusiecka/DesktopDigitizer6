@@ -189,9 +189,9 @@ Bool_t DDTreeMaker::MakeTree(void){
     for(Int_t i=0; i<fNch; i++){
       bname = Form("ch_%i",fChannels[i]);
       if(fCalib[i].fCalibMethod.Contains("PE"))
-        fBranch[i] = fTreeFT->Branch(bname,"DDSignalPE",&fSignal[i]);
+        fBranch[i] = fTreeFT->Branch(bname,(DDSignalPE**)&fSignal[i]);
       else if(fCalib[i].fCalibMethod.Contains("EN"))
-	fBranch[i] = fTreeFT->Branch(bname,"DDSignalEnergy",&fSignal[i]);
+	fBranch[i] = fTreeFT->Branch(bname,(DDSignalEnergy**)fSignal[i]);
       AnalyzeChannel(i,"FT");
     }
   
@@ -210,9 +210,9 @@ Bool_t DDTreeMaker::MakeTree(void){
     for(Int_t i=0; i<fNch; i++){
       bname = Form("ch_%i",fChannels[i]);
       if(fCalib[i].fCalibMethod.Contains("PE"))
-        fBranch[i] = fTreeCF->Branch(bname,"DDSignalPE",&fSignal[i]);
+        fBranch[i] = fTreeCF->Branch(bname,(DDSignalPE**)&fSignal[i]);
       else if(fCalib[i].fCalibMethod.Contains("EN"))
-	fBranch[i] = fTreeCF->Branch(bname,"DDSignalEnergy",&fSignal[i]);
+	fBranch[i] = fTreeCF->Branch(bname,(DDSignalEnergy**)&fSignal[i]);
       AnalyzeChannel(i,"CF");
     }
   

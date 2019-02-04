@@ -13,7 +13,7 @@
 #include "TObject.h"
 #include <iostream>
 #include <vector>
-#include <stdlib.h>
+#include <cstdlib>
 
 /// Class containing basic parameters describing the signal.
 /// This is base class for DDSignalPE and DDSignalEnergy,
@@ -22,7 +22,7 @@
 
 class DDSignalBase : public TObject{
   
-protected:
+public:
   float fAmp;		///< Amplitude [mV]
   float fT0;		///< Time T0 [ns] 
   float fTOT;		///< Time over threshold [ns]
@@ -32,7 +32,7 @@ public:
   DDSignalBase();
   DDSignalBase(std::vector <float> parameters);
   DDSignalBase(float amp, float t0, float tot, float charge);
-  ~DDSignalBase();
+  virtual ~DDSignalBase();
   
   /// Sets signal amplitude in mV
   void SetAmplitude(float amp){ fAmp = amp; };
