@@ -53,20 +53,20 @@ DDCalib::~DDCalib(){
 //------------------------------------------------------------------
 Bool_t DDCalib::GetTree(void){
   
-  fTree = (TTree*)fInputFile->Get("tree_cf");
+  fTree = (TTree*)fInputFile->Get("tree_ft");
   
   if(fTree!=NULL){
-    cout << "\nIn DDCalib::GetTree(). Accessing Constant Fraction data..." << endl;
+    cout << "\nIn DDCalib::GetTree(). Accesing fixed threshold data..." << endl;
     return kTRUE;
   }
   else{
-    fTree = (TTree*)fInputFile->Get("tree_ft");
+    fTree = (TTree*)fInputFile->Get("tree_cf");
     if(fTree==NULL){
      cout << "\n##### Error in DDCalib::GetTree()! Could not access data!"<< endl;
      return kFALSE;
     }
     else{
-        cout << "\nIn DDCalib::GetTree(). Accessing Fixed Threshold data..." << endl;
+        cout << "\nIn DDCalib::GetTree(). Accessing constant fraction data..." << endl;
         return kTRUE;
     }
   }
