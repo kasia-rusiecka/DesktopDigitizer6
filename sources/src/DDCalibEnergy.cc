@@ -11,10 +11,14 @@
 #include "DDCalibEnergy.hh"
 
 ClassImp(DDCalibEnergy);
-
+ 
 //------------------------------------------------------------------
-void DDCalibEnergy::AddPeak(Float_t id, Float_t mean, Float_t sigma)
-{
+/// Adds peak to the fPeaks vector, used for the calibration procedure.
+/// \param id - peak ID, i.e. its energy given in keV
+/// \param mean - peak position on the charge spectrum
+/// \param sigma - peak width
+void DDCalibEnergy::AddPeak(Float_t id, Float_t mean, Float_t sigma){
+  
   EnergyPeak peak;
   peak.fPeakID = id;
   peak.fMean = mean;
@@ -25,23 +29,28 @@ void DDCalibEnergy::AddPeak(Float_t id, Float_t mean, Float_t sigma)
   if(fPeaks.size()>fNPeaks){
    std::cerr << "##### Error in DDCalibEnergy::AddPeak()!" << std::endl;
    std::cerr << "Too many peaks!" << std::endl;
-   abort();
+   std::abort();
   }
   
   return;
 }
 //------------------------------------------------------------------
-Bool_t DDCalibEnergy::Validate() const
-{
+/// Checks whether the DDCalibEnergy calss object has been created 
+/// correctly.
+bool DDCalibEnergy::Validate() const{
   return fPeaks.size() == fNPeaks;
 }
 //------------------------------------------------------------------
-Bool_t DDCalibEnergy::Calibrate(TTree* tree, Int_t ch, TFile* file)
-{
+/// Performs energy calibration.
+/// \param tree - tree containing calibration measurement
+/// \param ch - channel number
+/// \param file - ROOT output file, where calibration results are saved.
+bool DDCalibEnergy::Calibrate(TTree* tree, Int_t ch, TFile* file){
+  
   std::cout << "\n---------- Channel " << ch << " calibration..." << std::endl;
   std::cout << "---------- Energy callibration..." << std::endl;
   
-  //----- Getting Charge spectrum
+  //----- Getting charge spectrum
   Double_t unique = gRandom->Uniform(0,1);
   TString hname = Form("energy_calib_ch%i",ch);
   TString selection = Form("ch_%i.fCharge>>htemp%.7f(2000,0,1.5E5)",ch,unique);
@@ -59,6 +68,7 @@ Bool_t DDCalibEnergy::Calibrate(TTree* tree, Int_t ch, TFile* file)
   std::vector <TF1*> peaks;
   peaks.resize(fNPeaks);
   Int_t npar = 0;
+  Int_t fit_status = -1;
   
   for(Int_t i=0; i<fNPeaks; i++){
      if(fPeaks[i].fPeakID==511){
@@ -69,20 +79,25 @@ Bool_t DDCalibEnergy::Calibrate(TTree* tree, Int_t ch, TFile* file)
        peaks[i]->SetParameter(3,-2E4);
        peaks[i]->SetParameter(4,1);
        peaks[i]->SetParameter(5,-1E-5);
-       hist->Fit(peaks[i],"+","",fPeaks[i].fMean-3*fPeaks[i].fSigma,
-                                 fPeaks[i].fMean+3*fPeaks[i].fSigma);
+       fit_status = hist->Fit(peaks[i],"+Q","",fPeaks[i].fMean-3*fPeaks[i].fSigma,
+                                               fPeaks[i].fMean+3*fPeaks[i].fSigma);
      }
      else{
        peaks[i] = (TF1*)funPeak->Clone(Form("peak%i",fPeaks[i].fPeakID));
        peaks[i]->SetParameter(0,hist->GetBinContent(hist->FindBin(fPeaks[i].fMean)));
        peaks[i]->SetParameter(1,fPeaks[i].fMean);
        peaks[i]->SetParameter(2,fPeaks[i].fSigma);
-       hist->Fit(peaks[i],"+","",fPeaks[i].fMean-3*fPeaks[i].fSigma,
-                                 fPeaks[i].fMean+3*fPeaks[i].fSigma);
+       fit_status = hist->Fit(peaks[i],"+Q","",fPeaks[i].fMean-3*fPeaks[i].fSigma,
+                                               fPeaks[i].fMean+3*fPeaks[i].fSigma);
+     }
+     if(fit_status!=0){
+     std::cout << "Warning in DDCalibEnrgy::Calibrate()!" << std::endl;
+     std::cout << "Gaussian fit for peak " << fPeaks[i].fPeakID << " failed!" <<std::endl;
+     std::cout << "Fit status = " << fit_status << std::endl;
      }
   }
   
-  //----- Energy callibration
+  //----- Energy calibration
   TGraphErrors *graph = new TGraphErrors(fNPeaks);
   TString gname = Form("PE_calib_ch%i_graph",ch);
   graph->SetName(gname);
@@ -99,7 +114,12 @@ Bool_t DDCalibEnergy::Calibrate(TTree* tree, Int_t ch, TFile* file)
 		       peaks[fNPeaks-1]->GetParameter(1));
   fpol1->SetParameter(0,-200);
   fpol1->SetParameter(1,1);
-  graph->Fit(fpol1,"R");
+  fit_status = graph->Fit(fpol1,"RQ");
+  
+  if(fit_status!=0){
+     std::cout << "Warning in DDCalibEnergy::Calibrate()!" << std::endl;
+     std::cout << "Linear fit failed! Fit status = " << fit_status << std::endl;
+  }
   
   //----- Printing results
   std::cout << "\n\n---------- Fit results:" << std::endl;
@@ -120,6 +140,20 @@ Bool_t DDCalibEnergy::Calibrate(TTree* tree, Int_t ch, TFile* file)
     graph->Write();
   }
   
-  return kTRUE;
+  return true;
+}
+//------------------------------------------------------------------
+/// Prints details of the DDCalibEnergy class object.
+void DDCalibEnergy::Print(void){
+  std::cout << "\n\n------------------------------------------------" << std::endl;
+  std::cout << "This is DDCalibEnergy class object" << std::endl;
+  std::cout << "Number of peaks in the calibration procedure: " << fNPeaks << std::endl;
+  std::cout << "Charge peaks initial parameters: " << std::endl;
+  std::cout << "ID \t Mean \t Sigma" << std::endl;
+  for(Int_t i=0; i<fNPeaks; i++){
+   std::cout << fPeaks[i].fPeakID << "\t" << fPeaks[i].fMean << "\t" << fPeaks[i].fSigma << std::endl; 
+  }
+  std::cout << "------------------------------------------------\n\n" << std::endl;
+  return;
 }
 //------------------------------------------------------------------

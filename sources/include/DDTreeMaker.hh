@@ -14,12 +14,11 @@
 #include "TTree.h"
 #include "TFile.h"
 #include "TString.h"
-#include "DDSignalPE.hh"
-#include "DDSignalEnergy.hh"
+#include "DDSignal.hh"
 #include <iostream>
 #include <fstream>
 #include <vector>
-#include <stdlib.h>
+#include <cstdlib>
 
 /// Class for analysis of regular (non-calibration) 
 /// measurements. Based on the provided configuration
@@ -46,6 +45,7 @@
 /// * CH_LIST THR FRAC CALIB_MET CALIB_FAC - respectively:
 /// channel list, thresholds (for FT analysis), fractions
 /// (for CF analysis), calibration method, calibration factor. 
+/// Thresholds should be given in Desktop Digitizer ADC channels.
 /// Available calibration methods are: PE for PE calibration or 
 /// EN for energy calibration. For the PE calibration one calibrating 
 /// factor is needed, while for the energy calibration two factors are 
@@ -59,55 +59,58 @@ class DDTreeMaker : public TObject{
   
 private:
   TString fPath;               ///< Path to the data files
-  int     fNch;                ///< Number of channels to be analyzed 
+  Int_t   fNch;                ///< Number of channels to be analyzed 
   TString fCoding;             ///< Data file coding: BINARY or ASCII
   TString fPolarity;           ///< Signal polarity: NEGATIVE or POSITIVE
   TString fOption;             ///< Analysis mode: CF, FT or both
   TString fIntegrationMode;    ///< Method of signal integration: LIMIT - for 
                                ///< fixed signal duration, TOT for time over threshold
-  float   fLimit;              ///< Duration of the signal (if LIMIT integration chosen)
+  Float_t fLimit;              ///< Duration of the signal (if LIMIT integration chosen)
   
 public:
-  // Structure containing calibration details
-  // for a given channel
+  /// Structure containing calibration details
+  /// for a given channel
   struct Calibration{
     TString fCalibMethod;      ///< Calibration method: PE or EN
-    int fCh;                   ///< Channel number
-    float fEnSlope;            ///< Slope for energy calibration
-    float fEnConst;            ///< Constant for energy calibraion
-    float fCalibPE;            ///< Calibration factors for charge to PE conversion
+    Int_t   fCh;               ///< Channel number
+    Float_t fEnSlope;          ///< Slope for energy calibration
+    Float_t fEnConst;          ///< Constant for energy calibraion
+    Float_t fCalibPE;          ///< Calibration factors for charge to PE conversion
   };
   
 private:
   TFile*  fFile;                        ///< Results ROOT file
   TTree*  fTreeFT;                      ///< Tree contining data analyzed with Fixed Threshold
   TTree*  fTreeCF;                      ///< Tree containing data analyzed with Constant Fraction
-  std::vector <int>     fChannels;      ///< Vector containing list of channels to be analyzed
-  std::vector <double>  fThresholds;    ///< Vector containing list of thresholds for each analyzed channel
-  std::vector <double>  fFractions;     ///< Vector containing list of fraction for each analyzed channel
+  std::vector <Int_t>     fChannels;    ///< Vector containing list of channels to be analyzed
+  std::vector <Double_t>  fThresholds;  ///< Vector containing list of thresholds for each analyzed 
+                                        ///< channel. Thresholds given in ADC channels.
+  std::vector <Double_t>  fFractions;   ///< Vector containing list of fraction for each analyzed channel
 
-  std::vector <DDSignalBase*> fSignal;       ///< Vector containing DDSignals for each channel
-  std::vector <TBranch*>      fBranch;       ///< Vector containing branches of the tree
-  std::vector <Calibration>   fCalib;        ///< Vector containing calibration details for each channel
+  std::vector <DDSignal*>     fSignal;   ///< Vector containing DDSignals for each channel
+  std::vector <TBranch*>      fBranch;   ///< Vector containing branches of the tree
+  std::vector <Calibration>   fCalib;    ///< Vector containing calibration details for each channel
   
-  float  fSamples[1024];          ///< Table containing samples (amplitudes) in one signal 
-  int    fTime[1024];             ///< Table containing time for each sample of the signal
+  Float_t  fSamples[1024];          ///< Table containing samples (amplitudes) in one signal 
+  Int_t    fTime[1024];             ///< Table containing time for each sample of the signal
+  
+  const Int_t gNS = 1024;           ///< Number of samples in one signal
   
 public:
   DDTreeMaker();
   DDTreeMaker(TString path);
   ~DDTreeMaker();
   
-  bool  ReadConfig(void);
-  bool  FindCoding(void);
-  bool  MakeTree(void);
-  bool  AnalyzeChannel(int channel, TString mode);
-  float FindAmplitude(void);
-  float FindT0(int index, float amplitude, TString mode);
-  float FindTOT(int index, float amplitude, float t0, TString mode);
-  float FindCharge(float t0, float tot);
-  float CalibrateCharge(int ch, float charge);
-  void  Print(void);
+  bool    ReadConfig(void);
+  bool    FindCoding(void);
+  bool    MakeTree(void);
+  bool    AnalyzeChannel(Int_t channel, TString mode);
+  Float_t FindAmplitude(void);
+  Float_t FindT0(Int_t index, Float_t amplitude, TString mode);
+  Float_t FindTOT(Int_t index, Float_t amplitude, Float_t t0, TString mode);
+  Float_t FindCharge(Float_t t0, Float_t tot);
+  Float_t CalibrateCharge(Int_t index, Float_t charge);
+  void    Print(void);
 
   ClassDef(DDTreeMaker,1)
 };

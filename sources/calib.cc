@@ -10,7 +10,6 @@
 
 #include "DDCalib.hh"
 #include <iostream>
-using namespace std;
 
 //argv[0] - ./calib
 //argv[1] - path to the data eg. data/test/
@@ -18,7 +17,7 @@ using namespace std;
 int main(int argc, char **argv){
  
   if(argc!=2){
-    cout << "To run type: ./calib path/to/data/" << endl;
+    std::cerr << "To run type: ./calib path/to/data/" << std::endl;
     return 0;
   }
   
@@ -30,8 +29,8 @@ int main(int argc, char **argv){
     calib = new DDCalib(path);
   } 
   catch(const char *message){
-    cout << message << endl;
-    cout << "##### Exception in calib.cc!" << endl;
+    std::cout << message << std::endl;
+    std::cout << "##### Exception in calib.cc!" << std::endl;
     return 0;
   }
   

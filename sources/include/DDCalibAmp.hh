@@ -22,7 +22,14 @@
 #include <stdlib.h>
 #include <iostream>
 
-// 
+/// Class responsible for the PE calibration of the charge spectra.
+/// In this method cuts are imposed on the charge spectrum based on 
+/// the amplitude spectrum. Gaussian function is fitted to every cut 
+/// charge spectrum. Mean of the fitted Gauss is then plotted as a
+/// function of PE numbers corresponding to the peak. Calibration
+/// factor is determined in two ways:
+/// - based on the linear fit to the peak mean vs. PE graph
+/// - as a mean distance between subsequent peaks.
 
 class DDCalibAmp : public DDCalibBase{
   
@@ -32,10 +39,10 @@ public:
   /// cuts on the charge spectrum in the calibration procedure (fCutMin,
   /// fCutMax).
   struct AmpPeak{
-   int   fNPE;          ///< Number of photoelectrons corresponding to the 
-                        ///< peak in the amplitude spectrum
-   float fCutMin;       ///< Lower range of the peak 
-   float fCutMax;       ///< Upper range of the peak 
+   Int_t   fNPE;          ///< Number of photoelectrons corresponding to the 
+                          ///< peak in the amplitude spectrum
+   Float_t fCutMin;       ///< Lower range of the peak 
+   Float_t fCutMax;       ///< Upper range of the peak 
   };
   
 private:
@@ -45,11 +52,14 @@ private:
 public:
   /// Standard constructor 
   /// \param npeaks - number of peaks for the cilbration
-  DDCalibAmp(int npeaks) : DDCalibBase(npeaks) {}
+  DDCalibAmp(Int_t npeaks) : DDCalibBase(npeaks) {}
+  /// Standard destructor.
+  ~DDCalibAmp() {}
   
-  void AddPeak(float cutMin, float cutMax);
-  bool Validate() const;
-  bool Calibrate(TTree *tree, int ch, TFile *file = 0);
+  void AddPeak(Int_t nPE, Float_t cutMin, Float_t cutMax);
+  bool Validate(void) const;
+  bool Calibrate(TTree *tree, Int_t ch, TFile *file = 0);
+  void Print(void);
   
   ClassDef(DDCalibAmp,1)
 };

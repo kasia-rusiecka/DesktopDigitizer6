@@ -22,7 +22,14 @@
 #include <stdlib.h>
 #include <iostream>
 
-//
+/// Class responsible for the energy calibration of the charge spectra. 
+/// Calibration is performed using peaks defined by the user in the
+/// configuration file (see DDCalib class reference) and stored in
+/// fPeaks vector. Sum of Gaussian function and polynomial of the 2nd
+/// order is fitted to the defined peaks. Subsequently peak ID energy 
+/// is plotted as a function of their mean values and linear fit is performed.
+/// Parameters of that fit are the parameters of the energy calibration for
+/// regular measurements.
 
 class DDCalibEnergy : public DDCalibBase{
   
@@ -33,9 +40,9 @@ public:
   /// key features, used later in the calibration procedure 
   /// as starting parameters.
   struct EnergyPeak{
-    int   fPeakID;      ///< Peak ID i.e. it's energy in keV
-    float fMean;        ///< Peak position
-    float fSigma;       ///< Peak sigma
+    Int_t   fPeakID;      ///< Peak ID i.e. it's energy in keV
+    Float_t fMean;        ///< Peak position
+    Float_t fSigma;       ///< Peak sigma
   };
   
 private:
@@ -45,11 +52,14 @@ private:
 public:
   /// Standard constructor.
   /// \param npeaks - number of peaks for the calibration 
-  DDCalibEnergy(int npeaks) : DDCalibBase(npeaks) {}
+  DDCalibEnergy(Int_t npeaks) : DDCalibBase(npeaks) {}
+  /// Standard destructor.
+  ~DDCalibEnergy() {}
   
-  void AddPeak(float id, float mean, float sigma);
-  bool Validate() const;
-  bool Calibrate(TTree *tree, int ch, TFile *file = 0);
+  void AddPeak(Float_t id, Float_t mean, Float_t sigma);
+  bool Validate(void) const;
+  bool Calibrate(TTree *tree, Int_t ch, TFile *file = 0);
+  void Print(void);
   
   ClassDef(DDCalibEnergy,1)
 };

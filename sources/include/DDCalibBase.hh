@@ -14,25 +14,30 @@
 #include "TFile.h"
 #include "TTree.h"
 
-// 
+/// Base class for the calibration procedure.  
 
 class DDCalibBase : public TObject{
   
 protected:
-  const int fNPeaks;	///< Number of peaks for calibration
+  const Int_t fNPeaks;	///< Number of peaks for calibration
   
 public:
   /// Standard constructor.
-  /// \param npeaks - number of peaks for calibration
-  DDCalibBase(int npeaks) : fNPeaks(npeaks) {}
+  /// \param npeaks - number of peaks for the calibration.
+  DDCalibBase(Int_t npeaks) : fNPeaks(npeaks) {}
+  /// Standard destructor.
+  virtual ~DDCalibBase() {}
+  
   /// Checks whether DDCalibBase-derived class object
-  /// is correctly defined
+  /// is correctly defined.
   virtual bool Validate() const = 0;
-  /// Performs calibration procedure. 
+  /// Performs the calibration procedure. 
   /// \param tree - tree containing data from calibration measurement
   /// \param ch - channel number
-  /// \param file - ROOT output file, where calibration results will be stored 
-  virtual bool Calibrate(TTree *tree, int ch, TFile *file = 0) = 0;
+  /// \param file - ROOT output file, where calibration results will be stored.
+  virtual bool Calibrate(TTree *tree, Int_t ch, TFile *file = 0) = 0;
+  /// Prints details of the DDCalibBase-derived class object.
+  virtual void Print(void) = 0;
   
   ClassDef(DDCalibBase,1)
 };

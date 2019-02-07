@@ -13,8 +13,12 @@
 ClassImp(DDCalibPE);
 
 //------------------------------------------------------------------
-void DDCalibPE::AddPeak(Float_t constant, Float_t mean, Float_t sigma)
-{
+/// Adds peak to the fPeaks vector, used for the calibration procedure.
+/// \param constant - peak height
+/// \param mean - peak position
+/// \param sigma - peak sigma.
+void DDCalibPE::AddPeak(Float_t constant, Float_t mean, Float_t sigma){
+  
   ChargePeak peak;
   peak.fConst = constant;
   peak.fMean = mean;
@@ -31,17 +35,21 @@ void DDCalibPE::AddPeak(Float_t constant, Float_t mean, Float_t sigma)
   return;
 }
 //------------------------------------------------------------------
-Bool_t DDCalibPE::Validate() const
-{
-  return fPeaks.size() == fNPeaks && fFitMin != fFitMax;
+/// Checks whether the DDCalibPE class object has been created correclty.
+bool DDCalibPE::Validate() const {
+  return fPeaks.size() == fNPeaks && fFitMin<fFitMax;
 }
 //------------------------------------------------------------------
-Bool_t DDCalibPE::Calibrate(TTree* tree, Int_t ch, TFile* file)
-{
+/// Performs PE calibration.
+/// \param tree - tree containing calibration measurement
+/// \param ch - channel number
+/// \param file - ROOT output file, where calibration results are saved.
+bool DDCalibPE::Calibrate(TTree* tree, Int_t ch, TFile* file){
+  
   std::cout << "\n---------- Channel " << ch << " calibration..." << std::endl;
   std::cout << "---------- PE callibration. Fitting sum of Gaussians to the charge spectrum..." << std::endl;
   
-  //----- Getting Charge spectrum
+  //----- Getting charge spectrum
   Double_t unique = gRandom->Uniform(0,1);
   TString hname = Form("PE_calib_ch%i",ch);
   TString selection = Form("ch_%i.fCharge>>htemp%.7f(1000,0,500)",ch,unique);
@@ -56,7 +64,7 @@ Bool_t DDCalibPE::Calibrate(TTree* tree, Int_t ch, TFile* file)
   //----- Fitting sum of Gaussians to the charge spectrum
   TString formula;
   
-  for(int i=0; i<fNPeaks; i++){
+  for(Int_t i=0; i<fNPeaks; i++){
     if (i == 0)
      formula.Append(Form("gaus(%i)",3*i)); 
     else 
@@ -71,7 +79,12 @@ Bool_t DDCalibPE::Calibrate(TTree* tree, Int_t ch, TFile* file)
    fun->SetParameter(i*3+2,fPeaks[i].fSigma);
   }
   
-  hist->Fit("fun","","",fFitMin,fFitMax);
+  Int_t fit_status = hist->Fit("fun","Q","",fFitMin,fFitMax);  
+ 
+  if(fit_status!=0){
+     std::cout << "Warning in DDCalibPE::Calibrate()!" << std::endl;
+     std::cout << "Sum of Gaussians fit failed! Fit status = " << fit_status << std::endl;
+  }
   
   //----- Calculating calib factor as mean distance between peaks
   std::vector <Double_t> diff;
@@ -94,13 +107,18 @@ Bool_t DDCalibPE::Calibrate(TTree* tree, Int_t ch, TFile* file)
   graph->GetYaxis()->SetTitle("peak position [a.u.]");
   
   for(Int_t i=0; i<fNPeaks; i++){	// starting with 2PE peak
-    graph->SetPoint(i,i+2,fun->GetParameter((i*3)+1)); 
+    graph->SetPoint(i,i+1,fun->GetParameter((i*3)+1)); 
     graph->SetPointError(i,0,fun->GetParError((i*3)+1));
   }
   
-  TF1 *fpol1 = new TF1("fpol1","pol1",2,fNPeaks+1);
-  graph->Fit(fpol1,"R");
-  
+  TF1 *fpol1 = new TF1("fpol1","pol1",1,fNPeaks);
+  graph->Fit(fpol1,"RQ");
+    
+  if(fit_status!=0){
+     std::cout << "Warning in DDCalibPE::Calibrate()!" << std::endl;
+     std::cout << "Linear fit failed! Fit status = " << fit_status << std::endl;
+  }
+    
   //----- Printing results
   std::cout << "\n\n---------- Fit results:" << std::endl;
   std::cout << "Gauss fit Chi2/NDF = " << fun->GetChisquare()/fun->GetNDF() << std::endl;
@@ -117,6 +135,21 @@ Bool_t DDCalibPE::Calibrate(TTree* tree, Int_t ch, TFile* file)
     graph->Write();
   }
 
-  return kTRUE;
+  return true;
+}
+//------------------------------------------------------------------
+/// Prints details of the DDCalibPE class object.
+void DDCalibPE::Print(void){
+  std::cout << "\n\n------------------------------------------------" << std::endl;
+  std::cout << "This is DDCalibPE class object" << std::endl;
+  std::cout << "Number of peaks in the calibration procedure: " << fNPeaks << std::endl;
+  std::cout << "Fitting range: " << fFitMin << " - " << fFitMax << std::endl;
+  std::cout << "Charge peaks initial parameters: " << std::endl;
+  std::cout << "Const \t Mean \t Sigma" << std::endl;
+  for(Int_t i=0; i<fNPeaks; i++){
+   std::cout << fPeaks[i].fConst << "\t" << fPeaks[i].fMean << "\t" << fPeaks[i].fSigma << std::endl; 
+  }
+  std::cout << "------------------------------------------------\n\n" << std::endl;
+  return;
 }
 //------------------------------------------------------------------

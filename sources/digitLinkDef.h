@@ -4,9 +4,7 @@
 #pragma link off all classes;
 #pragma link off all functions;
 
-#pragma link C++ class DDSignalBase+;
-#pragma link C++ class DDSignalPE+;
-#pragma link C++ class DDSignalEnergy+;
+#pragma link C++ class DDSignal+;
 #pragma link C++ class DDTreeMaker+;
 #pragma link C++ class DDCalibBase+;
 #pragma link C++ class DDCalibPE+;

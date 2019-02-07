@@ -26,17 +26,19 @@ DDCalib::DDCalib(TString path) : fPath(path),
   
   fInputFile = new TFile(path+"results.root","READ");
   fOutputFile = new TFile(path+"calib_" + (
-    fMethod == AmplitudePeakCalib ? "PE_CUT" :
-      fMethod == ChargePeakCalib ? " PE_SUM" :
+    fMethod == AmplitudePeakCalib ? "PE" :
+      fMethod == ChargePeakCalib ? "PE" :
         fMethod == EnergyPeakCalib ? "EN" : "NONE"
     ) + ".root","RECREATE");
   
   if(!(fInputFile->IsOpen() || fOutputFile->IsOpen())){
-    throw "##### Exception in DDCalib constructor!"; 
+    throw "##### Exception in DDCalib constructor! ROOT file not opened!"; 
   }
   
-  Bool_t tree_flag = GetTree();
-  std::cout << "Tree access flag: " << tree_flag << std::endl; 
+  bool tree_flag = GetTree();
+  if(!tree_flag){
+    throw "##### Exception in DDCalib constructor! could not access the tree!";
+  }
 }
 //------------------------------------------------------------------
 /// Default destructor.
@@ -45,8 +47,12 @@ DDCalib::~DDCalib(){
   if(fInputFile->IsOpen()) fInputFile->Close();
 }
 //------------------------------------------------------------------
+/// Accesses tree containing data from the calibration measurement. By 
+/// default Fixed Threshold data is accessed first, if it is not present 
+/// in the ROOT file, then Constant Fraction tree is accessed. 
 bool DDCalib::GetTree(void){
   
+  fTree = nullptr;
   fTree = (TTree*)fInputFile->Get("tree_ft");
   
   if(fTree!=nullptr){
@@ -66,6 +72,8 @@ bool DDCalib::GetTree(void){
   }
 }
 //------------------------------------------------------------------
+/// Reads configuration file "calib_config.txt" and sets values to 
+/// the private members of the class necessary for the calibration: 
 bool DDCalib::ReadConfig(void){
   
   TString dummy;
@@ -80,16 +88,20 @@ bool DDCalib::ReadConfig(void){
     abort();
   }
   
+  fPECalib     = nullptr;
+  fAmpCalib    = nullptr;
+  fEnergyCalib = nullptr;
+  
   std::cout << "\n---------- Reading config file " << config_name << std::endl;
 
   while(config.good()){
    
     config >> dummy;
     
-    if(dummy.Contains("#")){		//comment
+    if(dummy.Contains("#")){		// comment
       getline(config,line);
     }
-    else if(dummy.Contains("CH")){	//channel number
+    else if(dummy.Contains("CH")){	///- channel number
       config >> fCh;
       if(fCh>15){
         std::cerr << "##### Error in DDCalib::ReadConfig()!" << std::endl;
@@ -97,11 +109,11 @@ bool DDCalib::ReadConfig(void){
         abort();
       }
     }
-    else if(dummy.Contains("CAL")){	//calibration method
+    else if(dummy.Contains("CAL")){	///- calibration method
       TString method;
       config >> method;
-      if(method=="PE_CUT")       fMethod |= AmplitudePeakCalib;
-      else if(method=="PE_SUM")  fMethod |= ChargePeakCalib;
+      if(method.Contains("PE_CUT"))       fMethod |= AmplitudePeakCalib;
+      else if(method.Contains("PE_SUM"))  fMethod |= ChargePeakCalib;
       else if(method=="EN")      fMethod |= EnergyPeakCalib;
       else {
         std::cerr << "##### Error in DDCalib::ReadConfig()!" << std::endl;
@@ -109,7 +121,7 @@ bool DDCalib::ReadConfig(void){
         abort();
       }
     }
-    else if(dummy.Contains("NPEAKS")){	//number of peaks
+    else if(dummy.Contains("NPEAKS")){	///- number of peaks
       config >> fNPeaks;
       if(fNPeaks<2){
         std::cerr << "##### Error in DDCalib::ReadConfig()!" << std::endl;
@@ -117,13 +129,13 @@ bool DDCalib::ReadConfig(void){
         abort();
       }
     }
-    else if(dummy.Contains("CONST")){	//parameters for PE/charge calibration
+    else if(dummy.Contains("CONST")){	///- parameters for PE/charge calibration
       getline(config,line);
       if(fMethod & ChargePeakCalib == 0){
         std::cerr << "##### Error in DDCalib::ReadConfig()! Incorrect syntax!" << std::endl;
         abort();
       }
-      if(!fPECalib)
+      if(fPECalib==nullptr)
         fPECalib = new DDCalibPE(fNPeaks);
       for(Int_t i=0; i<fNPeaks; i++){
         Float_t par1, par2, par3;
@@ -135,13 +147,13 @@ bool DDCalib::ReadConfig(void){
         fPECalib = nullptr;
       }
     }
-    else if(dummy.Contains("FIT_MIN")){	//fit range for PE/charge calibration
+    else if(dummy.Contains("FIT_MIN")){	///- fit range for PE/charge calibration
       getline(config,line); 
       if(fMethod & ChargePeakCalib == 0){
         std::cerr << "##### Error in DDCalib::ReadConfig()! Incorrect syntax!" << std::endl;
         abort();
       }
-      if(!fPECalib)
+      if(fPECalib==nullptr)
 	  fPECalib = new DDCalibPE(fNPeaks);
       Float_t minFit, maxFit;
       config >> minFit >> maxFit;
@@ -151,17 +163,18 @@ bool DDCalib::ReadConfig(void){
         fPECalib = nullptr;
       }
     }
-    else if(dummy.Contains("PEAK_MIN")){	//parameters for PE/Amp calibration
+    else if(dummy.Contains("NPE")){	///- parameters for PE/Amp calibration
       getline(config,line);
       if(fMethod & AmplitudePeakCalib == 0){
         std::cerr << "##### Error in DDCalib::ReadConfig()! Incorrect syntax!" << std::endl;
         abort();
       }
       fAmpCalib = new DDCalibAmp(fNPeaks);
+      Int_t nPE;
       Float_t minAmp, maxAmp;
       for(Int_t i=0; i<fNPeaks; i++){
-        config >> minAmp >> maxAmp;
-	fAmpCalib->AddPeak(minAmp, maxAmp);
+        config >> nPE >> minAmp >> maxAmp;
+	fAmpCalib->AddPeak(nPE, minAmp, maxAmp);
       }
       if(fAmpCalib->Validate()){
 	fCalibFunctions.push_back(fAmpCalib);
@@ -173,7 +186,7 @@ bool DDCalib::ReadConfig(void){
 	abort();
       }
     }
-    else if(dummy.Contains("PEAK_ID")){		//parameters for energy calibration
+    else if(dummy.Contains("PEAK_ID")){		///- parameters for energy calibration
       getline(config,line);
       if(fMethod & EnergyPeakCalib == 0){
         std::cerr << "##### Error in DDCalib::ReadConfig()! Incorrect syntax!" << std::endl;
@@ -208,18 +221,20 @@ bool DDCalib::ReadConfig(void){
   return true;
 }
 //------------------------------------------------------------------
-Bool_t DDCalib::Calibrate(void){
+/// Performs calibration according to the provided configuration file.
+bool DDCalib::Calibrate(void){
 
   size_t s = fCalibFunctions.size();
-  for(size_t i = 0; i < s; ++i)
-  {
-    Bool_t res = fCalibFunctions[i]->Calibrate(fTree, fCh, fOutputFile);
-    if (!res) {
-      // Error handling
+  for(size_t i=0; i<s; ++i){
+    fCalibFunctions[i]->Print();
+    bool res = fCalibFunctions[i]->Calibrate(fTree, fCh, fOutputFile);
+    if (!res){
+      std::cerr << "##### Error during calibration. Iteration no " << i << std::endl;
+      abort();
     }
   }
 
-  return kTRUE;
+  return true;
 }
 //------------------------------------------------------------------
 /// Prints details of the DDCalib class object.

@@ -12,8 +12,6 @@
 
 ClassImp(DDTreeMaker);
 
-const int gNS = 1024;	//number of samples in one signal
-
 //------------------------------------------------------------------
 /// Default constructor. 
 DDTreeMaker::DDTreeMaker() : fPath(""), 
@@ -45,14 +43,15 @@ DDTreeMaker::DDTreeMaker(TString path) : fPath(path),
   
   TString fname = path+"results.root";
   fFile = new TFile(fname,"RECREATE");
-  ReadConfig();
-  FindCoding();
+  
+  Int_t config_flag = ReadConfig();
+  Int_t coding_flag = FindCoding();
+  
+  if(!config_flag || !coding_flag)
+    throw "##### Exception in DDTreeMaker constructor!";
   
   for(Int_t i=0; i<fNch; i++){
-    if(fCalib[i].fCalibMethod.Contains("PE"))
-      fSignal.push_back(new DDSignalPE());
-    else if(fCalib[i].fCalibMethod.Contains("EN"))
-      fSignal.push_back(new DDSignalEnergy());
+    fSignal.push_back(new DDSignal());
   }
 }
 //------------------------------------------------------------------
@@ -61,8 +60,8 @@ DDTreeMaker::~DDTreeMaker(){
   if(fFile->IsOpen()) fFile->Close();
 }
 //------------------------------------------------------------------
-/// Reads content of the config file config.txt and sets values to 
-/// private members of the class necessary for the analysis.
+/// Reads content of the config file config.txt and sets values of 
+/// private members of the class necessary for the analysis: 
 Bool_t DDTreeMaker::ReadConfig(void){
  
   TString dummy;
@@ -80,7 +79,7 @@ Bool_t DDTreeMaker::ReadConfig(void){
    
     config >> dummy;
     
-    if(dummy.Contains("NCH")){
+    if(dummy.Contains("NCH")){     ///- number of channels
      config >> fNch;
      if(fNch>16 && fNch<0){
       std::cerr << "##### Error in DDTreeMaker::ReadConfig()!" << std::endl;
@@ -91,7 +90,7 @@ Bool_t DDTreeMaker::ReadConfig(void){
      fThresholds.resize(fNch);
      fFractions.resize(fNch);
     }
-    else if(dummy.Contains("POL")){
+    else if(dummy.Contains("POL")){     ///- signal polarity
      config >> fPolarity;
      if(!(fPolarity=="NEGATIVE" || fPolarity=="POSITIVE")){
       std::cerr << "##### Error in DDTreeMaker::ReadConfig()!" << std::endl;
@@ -99,7 +98,7 @@ Bool_t DDTreeMaker::ReadConfig(void){
       return false;
      }
     }
-    else if(dummy.Contains("OPT")){
+    else if(dummy.Contains("OPT")){     ///- analysis mode
      config >> fOption;
      if(!fOption.Contains("FT") && !fOption.Contains("CF")){
       std::cerr << "##### Error in DDTreeMaker::ReadConfig!" << std::endl;
@@ -107,28 +106,28 @@ Bool_t DDTreeMaker::ReadConfig(void){
       return false;
       }
     }
-    else if(dummy.Contains("INT")){
+    else if(dummy.Contains("INT")){     ///- integration mode
      config >> fIntegrationMode; 
      if(!(fIntegrationMode=="LIMIT" || fIntegrationMode=="TOT")){
        std::cerr << "##### Error in DDTreeMaker::ReadConfig!" << std::endl;
        std::cerr << "Unknown integration mode! Possible options: LIMIT or TOT" << std::endl;
        return false;
      }
-     if(fIntegrationMode=="LIMIT"){
+     if(fIntegrationMode=="LIMIT"){     ///- integration limit
        config >> fLimit;
      }
     }
-    else if(dummy.Contains("CH_LIST")){
+    else if(dummy.Contains("CH_LIST")){     ///- list of: channels, thresholds, fractions, calib methods
      getline(config,line);
 
      for(Int_t i=0; i<fNch; i++){
       fCalib.push_back(Calibration());
       config >> fChannels[i] >> fThresholds[i] >> fFractions[i] >> fCalib[i].fCalibMethod;
       fThresholds[i] = fThresholds[i]/4.096;   // recalculating from ADC channels to mV
-      if(fCalib[i].fCalibMethod=="PE"){ 
+      if(fCalib[i].fCalibMethod=="PE"){     ///- calib factor for PE calibration
 	config >> fCalib[i].fCalibPE;
       }
-      else if(fCalib[i].fCalibMethod=="EN"){
+      else if(fCalib[i].fCalibMethod=="EN"){     ///- calib factors for energy calibration
 	config >> fCalib[i].fEnSlope >> fCalib[i].fEnConst;
       }
       else {
@@ -142,7 +141,7 @@ Bool_t DDTreeMaker::ReadConfig(void){
      std::cout << "##### Warning in DDTreeMaker::ReadConfig()!" << std::endl;
      std::cout << "Unknown syntax, skipping line: " << std::endl;
      getline(config,line);
-     std::cout << line << std::endl;
+     std::cout << dummy << line << std::endl;
     }
   }
   
@@ -152,7 +151,7 @@ Bool_t DDTreeMaker::ReadConfig(void){
 }
 //------------------------------------------------------------------
 /// Checks data files coding: BINARY or ASCI.
-Bool_t DDTreeMaker::FindCoding(void){
+bool DDTreeMaker::FindCoding(void){
  
   TString fname_binary = fPath+Form("wave_%i.dat",fChannels[0]);
   TString fname_ascii = fPath+Form("wave_%i.txt",fChannels[0]);
@@ -175,50 +174,49 @@ Bool_t DDTreeMaker::FindCoding(void){
   return true;
 }
 //------------------------------------------------------------------
-Bool_t DDTreeMaker::MakeTree(void){
+/// Creates requested trees, according to information from the configuration file:
+/// "tree_ft" for Fixed Threshold analysis and "tree_cf" for Constant Fraction 
+/// analysis. Sets addresses of respective branches. Each branch represents one 
+/// analyzed channel. Subsequently data from chosen channels are analyzed and trees
+/// filled. Finally trees are saved in the ROOT file. 
+bool DDTreeMaker::MakeTree(void){
   
-  TString bname;	//branch name
-  Int_t entries = 0;	//number of entries in the tree
+  TString bname;
+  Int_t entries = 0;     //number of entries in the tree
   
   fBranch.resize(fNch);
   
-  if(fOption.Contains("FT")){
+  if(fOption.Contains("FT")){     // tree containing Fixed Threshold data
     
     fTreeFT = new TTree("tree_ft","tree_ft");
   
     for(Int_t i=0; i<fNch; i++){
       bname = Form("ch_%i",fChannels[i]);
-      if(fCalib[i].fCalibMethod.Contains("PE"))
-        fBranch[i] = fTreeFT->Branch(bname,(DDSignalPE**)&fSignal[i]);
-      else if(fCalib[i].fCalibMethod.Contains("EN"))
-	fBranch[i] = fTreeFT->Branch(bname,(DDSignalEnergy**)fSignal[i]);
-      AnalyzeChannel(i,"FT");
+      fBranch[i] = fTreeFT->Branch(bname,"DDSignal",&fSignal[i]);
+      //fBranch[i] = fTreeFT->Branch(bname,(DDSignal**)&fSignal[i]);
+      AnalyzeChannel(i,"FT");     // tree filling
     }
   
     entries = fBranch[0]->GetEntries();
     fTreeFT->SetEntries(entries);
-  
     fFile->cd();
     fTreeFT->Write();
   }
   
 // -----  
-  if(fOption.Contains("CF")){
+  if(fOption.Contains("CF")){     // tree containing Constant Fraction data
     
     fTreeCF = new TTree("tree_cf","tree_cf");
   
     for(Int_t i=0; i<fNch; i++){
       bname = Form("ch_%i",fChannels[i]);
-      if(fCalib[i].fCalibMethod.Contains("PE"))
-        fBranch[i] = fTreeCF->Branch(bname,(DDSignalPE**)&fSignal[i]);
-      else if(fCalib[i].fCalibMethod.Contains("EN"))
-	fBranch[i] = fTreeCF->Branch(bname,(DDSignalEnergy**)&fSignal[i]);
-      AnalyzeChannel(i,"CF");
+      fBranch[i] = fTreeCF->Branch(bname,"DDSignal",&fSignal[i]);
+      //fBranch[i] = fTreeCF->Branch(bname,(DDSignal**)&fSignal[i]);
+      AnalyzeChannel(i,"CF");     // tree filling
     }
   
     entries = fBranch[0]->GetEntries();
     fTreeCF->SetEntries(entries);
-  
     fFile->cd();
     fTreeCF->Write();
   }
@@ -226,7 +224,20 @@ Bool_t DDTreeMaker::MakeTree(void){
   return true;
 }
 //------------------------------------------------------------------
-Bool_t DDTreeMaker::AnalyzeChannel(Int_t index, TString mode){
+/// Opens data files for the requested channel and analyzes saved data
+/// signal after signal. As the data file is being read a 1024-element
+/// array fSamples is filled with the saved ADC read-out (1024 samples saved  
+/// in one signal). ADC read out is converted to mV. fTimes array is filled 
+/// with corresponding time value - in that case 1 GHz samplinq was used, 
+/// i.e. 1 sample corresponds to 1 ns. Base line is calculated for every 
+/// signal separately, as an average of the first 50 signals in the sample, 
+/// subsequently it is subtracted from the signal. fSamples array is analyzed
+/// in order to find signal's amplitude, time T0, time over threshold, integral
+/// and calibrated integral. Corresponding tree branch is then filled.
+/// \param index - index in the fChannels vector where requested channel number
+/// is stored
+/// \param mode - analysis mode, i.e. FT or CF
+bool DDTreeMaker::AnalyzeChannel(Int_t index, TString mode){
   
   Int_t ch = fChannels[index];
   TString fname;
@@ -252,13 +263,13 @@ Bool_t DDTreeMaker::AnalyzeChannel(Int_t index, TString mode){
    return false;
   }
     
-  Double_t BL;      //base line  
+  Double_t BL;     //base line  
   Float_t amplitude, t0, tot, charge, calibrated;
    
   //reading input files
   while(input.good()){
     
-    for(Int_t ii=0; ii<gNS; ii++){      //loop over samples in one signal
+    for(Int_t ii=0; ii<gNS; ii++){     //loop over samples in one signal
       if(fCoding=="binary") input.read((char*)&x, sizeof x);
       else input >> x;
       fSamples[ii] = x/4.096;   //recalculating from ADC channels to mV
@@ -266,12 +277,12 @@ Bool_t DDTreeMaker::AnalyzeChannel(Int_t index, TString mode){
     }
     
     BL = 0.;
-    for(Int_t i=0; i<50; i++){  //base line determination
+    for(Int_t i=0; i<50; i++){     //base line determination
      BL+=fSamples[i];
     }
     BL=BL/50.;
     
-    for(Int_t i=0; i<gNS; i++){ //base line subtraction
+    for(Int_t i=0; i<gNS; i++){     //base line subtraction
      fSamples[i]=fSamples[i]-BL;
     }
     
@@ -279,7 +290,7 @@ Bool_t DDTreeMaker::AnalyzeChannel(Int_t index, TString mode){
     amplitude = FindAmplitude();
     fSignal[index]->SetAmplitude(amplitude);
     
-    t0 = FindT0(index,amplitude,mode);
+    t0 = FindT0(index, amplitude, mode);
     fSignal[index]->SetT0(t0);
     
     tot = FindTOT(index, amplitude, t0, mode);
@@ -288,8 +299,7 @@ Bool_t DDTreeMaker::AnalyzeChannel(Int_t index, TString mode){
     charge = FindCharge(t0, tot); 
     fSignal[index]->SetCharge(charge);
     
-    //pe = charge/fCalib[index];
-    calibrated = CalibrateCharge(index,charge);
+    calibrated = CalibrateCharge(index, charge);
     fSignal[index]->SetCalibrated(calibrated);
     
     fBranch[index]->Fill();
@@ -322,6 +332,24 @@ Float_t DDTreeMaker::FindAmplitude(void){
   return amplitude;
 }
 //------------------------------------------------------------------
+/// Finds time T0 of the analyzed signal: 
+/// - if analysis mode FT is chosen, T0 is found as time when signal's 
+/// amplitude crosses given threshold value
+/// - if analysis mode CF is chosen, T0 is found as time when signal's
+/// amplitude crosses value FRACTION*MAX_AMPLITUDE
+///
+/// In order to achieve sub-nanosecond precision time T0 is determined
+/// with the linear interpolation, i.e. linear interpolation between 
+/// two points sourrounding threshold-crossing point and precise T0 
+/// value is calculated.
+/// 
+/// If threshold is crossed already in the first sample returns value 0.
+/// If threshold is not crossed at all returns value -100.
+/// \param index - index in fThresholds or fFractions vectors where 
+/// data for analyzed channel is stored
+/// \param amplitude - amplitude of the analyzed signal, needed if CF 
+/// mode is used
+/// \param mode - analysis mode, i.e. FT/CF
 Float_t DDTreeMaker::FindT0(Int_t index, Float_t amplitude, TString mode){
   
   Float_t t0 = 0.;
@@ -369,6 +397,21 @@ Float_t DDTreeMaker::FindT0(Int_t index, Float_t amplitude, TString mode){
   return t0;
 }
 //------------------------------------------------------------------
+/// Finds Time Over Threshold i.e. time during which signal'a amplitude
+/// was higher than given threshold value. Analysis mode FT/CF also
+/// applies here. Second point in time when signal's amplitude crosses 
+/// the threshold is determined in the same way as T0 in FindT0(), also
+/// with the linear interpolation. 
+///
+/// If T0=-100 i.e. this function also returns -100.
+/// If amplidue never crosses the threshold for the second time, this 
+/// moment is assumed to be last recorded sample in the signal, i.e. 1024 ns.
+/// \param index - index in fThresholds or fFractions vectors where 
+/// data for analyzed channel is stored
+/// \param amplitude - amplitude of the analyzed signal, needed if CF 
+/// mode is used
+/// \param t0 - time T0 of the analyzed signal
+/// \param mode - analysis mode, i.e. FT/CF
 Float_t DDTreeMaker::FindTOT(Int_t index, Float_t amplitude, Float_t t0, TString mode){
  
   if(t0==-100) return -100.;
@@ -421,6 +464,15 @@ Float_t DDTreeMaker::FindTOT(Int_t index, Float_t amplitude, Float_t t0, TString
   return tot;
 }
 //------------------------------------------------------------------
+/// Returns integral of the analyzed signal. Signal integration starts 
+/// at time T0 and depending on the chosen integration mode stops:
+/// - after fixed amount of time - LIMIT mode 
+/// - after Time Over Threshold - TOT mode
+/// 
+/// Signal integration is performed as simple addition of subsequent 
+/// amplitude samples within the integration range.
+/// \param t0 - time T0 of the analyzed signal
+/// \param tot - Time Over Threshold
 Float_t DDTreeMaker::FindCharge(Float_t t0, Float_t tot){
  
   Float_t charge = 0.;
@@ -443,20 +495,20 @@ Float_t DDTreeMaker::FindCharge(Float_t t0, Float_t tot){
   return charge;
 }
 //------------------------------------------------------------------
-Float_t DDTreeMaker::CalibrateCharge(Int_t ch, Float_t charge){
+/// Returns calibrated charge value, depending on the chosen calibration 
+/// method - in PE or in keV.
+/// \param index - index in the fCalib vector where calibration information 
+/// for the requested channel is stored
+/// \param charge - signal integral.
+Float_t DDTreeMaker::CalibrateCharge(Int_t index, Float_t charge){
 
   Float_t calibrated = 0;
   
-  if(fCalib[ch].fCalibMethod=="PE"){
-    calibrated = charge/fCalib[ch].fCalibPE;
+  if(fCalib[index].fCalibMethod=="PE"){
+    calibrated = charge/fCalib[index].fCalibPE;
   }
-  else if(fCalib[ch].fCalibMethod=="EN"){
-    calibrated = (charge*fCalib[ch].fEnSlope) + fCalib[ch].fEnConst;
-  }
-  else{
-    std::cerr << "##### Error in DDTreeMaker::CalibrateCharge()!" << std::endl;
-    std::cerr<< "Unknown callibration method!" << std::endl;
-    abort();
+  else if(fCalib[index].fCalibMethod=="EN"){
+    calibrated = (charge*fCalib[index].fEnSlope) + fCalib[index].fEnConst;
   }
   
   return calibrated;
@@ -484,8 +536,8 @@ void DDTreeMaker::Print(void){
   for(Int_t i=0; i<fNch; i++){
     std::cout << fChannels[i] << "\t" << fCalib[i].fCalibMethod;
     if(fCalib[i].fCalibMethod=="PE") std::cout << "\t" << fCalib[i].fCalibPE;
-    else if(fCalib[i].fCalibMethod=="EN")  std::cout << "\t" << fCalib[i].fEnSlope 
-                                              << " " << fCalib[i].fEnConst;
+    else if(fCalib[i].fCalibMethod=="EN")  std::cout << "\t" << fCalib[i].fEnSlope
+                                                     << " " << fCalib[i].fEnConst;
     if(fOption.Contains("FT")) std::cout << "\t" << fThresholds[i];
     if(fOption.Contains("CF")) std::cout << "\t" << fFractions[i];
     std::cout << std::endl;
