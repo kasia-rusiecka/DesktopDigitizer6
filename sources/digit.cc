@@ -1,6 +1,6 @@
 // *****************************************
 // *                                       *
-// *           DesktopDigitizer            *
+// *           DesktopDigitizer6           *
 // *               digit.cc                *
 // *          Katarzyna Rusiecka           *
 // * katarzyna.rusiecka@doctoral.uj.edu.pl *
@@ -9,9 +9,7 @@
 // *****************************************
 
 #include "DDTreeMaker.hh" 
-#include "DDSignal.hh"
 #include <iostream>
-using namespace std;
 
 //argv[0] - ./digit
 //argv[1] - path to the data eg. data/test/
@@ -19,13 +17,23 @@ using namespace std;
 int main(int argc, char **argv){
  
   if(argc!=2){
-    cout << "To run type: ./digit path/to/data/" << endl;
+    std::cerr << "To run type: ./digit path/to/data/" << std::endl;
     return 0;
   }
   
   TString path(argv[1]);
   
-  DDTreeMaker *maker = new DDTreeMaker(path);
+  DDTreeMaker *maker;
+  
+  try{
+    maker = new DDTreeMaker(path);
+  } 
+  catch(const char *message){
+    std::cerr << message << std::endl;
+    std::cerr << "##### Exception in digit.cc!" << std::endl;
+    return 0;
+  }
+  
   maker->Print();
   maker->MakeTree();
   delete maker;

@@ -1,7 +1,7 @@
 // *****************************************
 // *                                       *
-// *           DesktopDigitizer            *
-// *             DDSignal.hh               *
+// *           DesktopDigitizer6           *
+// *              DDSignal.hh              *
 // *          Katarzyna Rusiecka           *
 // * katarzyna.rusiecka@doctoral.uj.edu.pl *
 // *          Created in 2017              *
@@ -12,32 +12,35 @@
 #define __DDSignal_H_ 1
 #include "TObject.h"
 #include <iostream>
+#include <vector>
+#include <cstdlib>
+
+/// Class containing basic parameters describing the signal.
 
 class DDSignal : public TObject{
   
-private:
+public:
   Float_t fAmp;		///< Amplitude [mV]
   Float_t fT0;		///< Time T0 [ns] 
   Float_t fTOT;		///< Time over threshold [ns]
-  Float_t fCharge;	///< Uncalibrated charge 
-  Float_t fPE;		///< Calibrated charge [PE]
+  Float_t fCharge;	///< Uncalibrated charge [a.u.]
+  Float_t fCal;		///< Calibrated charge [P.E.] or [keV]
   
 public:
   DDSignal();
-  DDSignal(Float_t amplitude, Float_t t0, Float_t tot, Float_t charge, Float_t pe);
-  DDSignal(Float_t *parameters);
+  DDSignal(Float_t amp, Float_t t0, Float_t tot, Float_t charge, Float_t cal);
   ~DDSignal();
   
   /// Sets signal amplitude in mV
-  void SetAmplitude(Float_t amplitude){ fAmp = amplitude; };
+  void SetAmplitude(Float_t amp){ fAmp = amp; };
   /// Sets time T0 in ns
-  void SetT0(Float_t t0){ fT0 = t0; };
+  void SetT0(Float_t t0){ fT0 = t0; }
   /// Sets time over threshold in mV
   void SetTOT(Float_t tot){ fTOT = tot; };
   /// Sets uncalibrated charge, i.e. signal integral
   void SetCharge(Float_t charge){ fCharge = charge; };
-  /// Sets calibrated charge in PE
-  void SetPE(Float_t pe){ fPE = pe; };
+  /// Sets value of charge calibrated to PE or keV
+  void SetCalibrated(Float_t cal){ fCal = cal; };
   /// Returns signal amplitude in mV
   Float_t GetAmplitude(void){ return fAmp; };
   /// Returns time T0 in ns
@@ -46,15 +49,14 @@ public:
   Float_t GetTOT(void){ return fTOT; };
   /// Returns uncalibrated charge, i.e. signal integral
   Float_t GetCharge(void){ return fCharge; };
-  /// Returns calibrated charge in PE
-  Float_t GetPE(void){ return fPE; };
+  /// Returns value of calibrated charge in PE or keV
+  Float_t GetCalibrated(void){ return fCal; };
   
-  void SetAll(Float_t *parameters);
+  void SetAll(std::vector <Float_t> parameters);
   void Clear(void);
   void Print(void);
 
-  ClassDef(DDSignal,1)
-  
+  ClassDef(DDSignal,1) 
 };
 
 #endif
