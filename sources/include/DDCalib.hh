@@ -24,7 +24,31 @@
 #include <string>
 #include <fstream>
 
-/// 
+/// Class performing calibration based on the provided configuration file
+/// "calib_config.txt". Configuration file should be in the same directory
+/// as the analyzed data. This class accesses already digitized trees, so 
+/// digitization with digit and calibration factors 1 should be run before
+/// calibration. 
+///
+/// Configuration file syntax:
+/// - CH - channel number
+/// - CAL - calibration method. Available options are: PE_CUT - PE calibration
+/// based on cuts on the amplitude spectrum, PE_SUM - PE calibration with the
+/// sum of Gaussians fitted to the charge spectrum, EN - energy calibration.
+/// - NPEAKS - number of peaks in the calibration procedure
+/// - PEAK_MIN PEAK_MAX - for the PE_CUT method, lower and upper ranges of the
+/// peaks in the amplitude spectrum
+/// - FIT_MIN FIT_MAX - for the PE_SUM method, lower and upper range of the fit
+/// - CONST MEAN SIGMA - for the PE_SUM method, parameters of the peaks in the
+/// charge spectrum
+/// - PEAK_ID PEAK_POS PEAK_WIDTH - for the EN method, parameters of the peaks 
+/// in the charge spectrum, where ID is energy in keV
+///
+/// Both methods of the PE calibration can be used simultaneusly. Channel
+/// number, calibration method and number of peaks should be listed in the 
+/// beginning of the file, while the other parameters can be listed in any order.
+/// Results of the calibration are saved in ROOT files in form of histograms with
+/// fitted functions and calibration curves. 
 
 class DDCalib : public TObject{
   
