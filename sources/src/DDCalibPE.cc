@@ -48,6 +48,8 @@ bool DDCalibPE::Calibrate(TTree* tree, Int_t ch, TFile* file){
   
   std::cout << "\n---------- Channel " << ch << " calibration..." << std::endl;
   std::cout << "---------- PE callibration. Fitting sum of Gaussians to the charge spectrum..." << std::endl;
+ 
+  ROOT::Math::MinimizerOptions::SetDefaultMaxFunctionCalls(500000);
   
   //----- Getting charge spectrum
   Double_t unique = gRandom->Uniform(0,1);
@@ -76,10 +78,11 @@ bool DDCalibPE::Calibrate(TTree* tree, Int_t ch, TFile* file){
   for(Int_t i=0; i<fNPeaks; i++){
    fun->SetParameter(i*3+0,fPeaks[i].fConst);
    fun->SetParameter(i*3+1,fPeaks[i].fMean);
+   fun->SetParLimits(i*3+1,fPeaks[i].fMean-20,fPeaks[i].fMean+20);
    fun->SetParameter(i*3+2,fPeaks[i].fSigma);
   }
   
-  Int_t fit_status = hist->Fit("fun","Q","",fFitMin,fFitMax);  
+  Int_t fit_status = hist->Fit("fun","","",fFitMin,fFitMax);  
  
   if(fit_status!=0){
      std::cout << "Warning in DDCalibPE::Calibrate()!" << std::endl;
@@ -106,7 +109,7 @@ bool DDCalibPE::Calibrate(TTree* tree, Int_t ch, TFile* file){
   graph->GetXaxis()->SetTitle("number of PE");
   graph->GetYaxis()->SetTitle("peak position [a.u.]");
   
-  for(Int_t i=0; i<fNPeaks; i++){	// starting with 2PE peak
+  for(Int_t i=0; i<fNPeaks; i++){
     graph->SetPoint(i,i+1,fun->GetParameter((i*3)+1)); 
     graph->SetPointError(i,0,fun->GetParError((i*3)+1));
   }

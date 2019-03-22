@@ -77,8 +77,8 @@ Bool_t DDCalibAmp::Calibrate(TTree* tree, Int_t ch, TFile* file){
     unique = gRandom->Uniform(0,1);
     hChargeName = Form("PE_calib_%iPE_ch%i",fPeaks[i].fNPE,ch);
     selection = Form("ch_%i.fCharge>>htemp%.7f(1000,0,400)",ch,unique);
-    cut = Form("ch_%i.fAmp>%.f && ch_%i.fAmp<%.f && ch_%i.fCharge>50", 
-	       ch, fPeaks[i].fCutMin, ch, fPeaks[i].fCutMax, ch);
+    cut = Form("ch_%i.fAmp>%.f && ch_%i.fAmp<%.f && ch_%i.fCharge>0", 
+          ch, fPeaks[i].fCutMin, ch, fPeaks[i].fCutMax, ch);
     tree->Draw(selection,cut);
     hCharge[i] = (TH1D*)gROOT->FindObjectAny(Form("htemp%.7f",unique));
     hCharge[i]->SetName(hChargeName);
@@ -87,7 +87,7 @@ Bool_t DDCalibAmp::Calibrate(TTree* tree, Int_t ch, TFile* file){
     hCharge[i]->GetYaxis()->SetTitle("counts");
     n = spectrum->Search(hCharge[i],50,"goff");
     peaksX = spectrum->GetPositionX();
-    fun[i] = new TF1("fun","gaus",peaksX[0]-30,peaksX[0]+50);
+    fun[i] = new TF1("fun","gaus",peaksX[0]-15,peaksX[0]+15);
     fun[i]->SetParameter(0,hCharge[i]->GetBinContent(hCharge[i]->FindBin(peaksX[0])));
     fun[i]->SetParameter(1,peaksX[0]);
     fun[i]->SetParameter(2,50);
@@ -108,7 +108,7 @@ Bool_t DDCalibAmp::Calibrate(TTree* tree, Int_t ch, TFile* file){
                    fun[i]->GetParameter(1));
     sum+=diff[i];
   }
-  
+
   Double_t calibFactor = sum/diff.size();
   
   //----- Calculating calib factor from linear fit

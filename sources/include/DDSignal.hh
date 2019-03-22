@@ -24,7 +24,7 @@ public:
   Float_t fT0;		///< Time T0 [ns] 
   Float_t fTOT;		///< Time over threshold [ns]
   Float_t fCharge;	///< Uncalibrated charge [a.u.]
-  Float_t fCal;		///< Calibrated charge [P.E.] or [keV]
+  Float_t fPE;		///< Calibrated charge [P.E.] or [keV]
   
 public:
   DDSignal();
@@ -40,7 +40,7 @@ public:
   /// Sets uncalibrated charge, i.e. signal integral
   void SetCharge(Float_t charge){ fCharge = charge; };
   /// Sets value of charge calibrated to PE or keV
-  void SetCalibrated(Float_t cal){ fCal = cal; };
+  void SetPE(Float_t cal){ fPE = cal; };
   /// Returns signal amplitude in mV
   Float_t GetAmplitude(void){ return fAmp; };
   /// Returns time T0 in ns
@@ -50,7 +50,7 @@ public:
   /// Returns uncalibrated charge, i.e. signal integral
   Float_t GetCharge(void){ return fCharge; };
   /// Returns value of calibrated charge in PE or keV
-  Float_t GetCalibrated(void){ return fCal; };
+  Float_t GetPE(void){ return fPE; };
   
   void SetAll(std::vector <Float_t> parameters);
   void Clear(void);

@@ -119,21 +119,20 @@ Bool_t DDTreeMaker::ReadConfig(void){
     }
     else if(dummy.Contains("CH_LIST")){     ///- list of: channels, thresholds, fractions, calib methods
      getline(config,line);
-
      for(Int_t i=0; i<fNch; i++){
       fCalib.push_back(Calibration());
       config >> fChannels[i] >> fThresholds[i] >> fFractions[i] >> fCalib[i].fCalibMethod;
       fThresholds[i] = fThresholds[i]/4.096;   // recalculating from ADC channels to mV
       if(fCalib[i].fCalibMethod=="PE"){     ///- calib factor for PE calibration
-	config >> fCalib[i].fCalibPE;
+        config >> fCalib[i].fCalibPE;
       }
       else if(fCalib[i].fCalibMethod=="EN"){     ///- calib factors for energy calibration
-	config >> fCalib[i].fEnSlope >> fCalib[i].fEnConst;
+        config >> fCalib[i].fEnSlope >> fCalib[i].fEnConst;
       }
       else {
-	std::cerr << "##### Error in DDTreeMaker::ReadConfig()" << std::endl;
-	std::cerr << "Unknown calibration method. Possible options: PE or EN" << std::endl;
-	return false;
+        std::cerr << "##### Error in DDTreeMaker::ReadConfig()" << std::endl;
+        std::cerr << "Unknown calibration method. Possible options: PE or EN" << std::endl;
+        return false;
       }
      }
     }
@@ -300,7 +299,7 @@ bool DDTreeMaker::AnalyzeChannel(Int_t index, TString mode){
     fSignal[index]->SetCharge(charge);
     
     calibrated = CalibrateCharge(index, charge);
-    fSignal[index]->SetCalibrated(calibrated);
+    fSignal[index]->SetPE(calibrated);
     
     fBranch[index]->Fill();
   }

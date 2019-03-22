@@ -15,6 +15,7 @@
 #include "TRandom.h"
 #include "TString.h"
 #include "TGraphErrors.h"
+#include "Math/MinimizerOptions.h"
 #include "TF1.h"
 #include "TH1F.h"
 #include <vector>

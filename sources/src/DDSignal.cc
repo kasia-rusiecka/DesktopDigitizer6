@@ -18,7 +18,7 @@ DDSignal::DDSignal() : fAmp(-100),
                        fT0(-100),
                        fTOT(-100),
                        fCharge(-100),
-                       fCal(-100) {}
+                       fPE(-100) {}
 //------------------------------------------------------------------
 /// Standard constructor.
 /// \param amp - signal amplitude [mV]
@@ -31,7 +31,7 @@ DDSignal::DDSignal(Float_t amp, Float_t t0, Float_t tot, Float_t charge, Float_t
                    fT0(t0),
                    fTOT(tot),
                    fCharge(charge),
-                   fCal(cal) {}
+                   fPE(cal) {}
 //------------------------------------------------------------------
 /// Default destructor.
 DDSignal::~DDSignal(){
@@ -53,7 +53,7 @@ void DDSignal::SetAll(std::vector <Float_t> parameters){
  fT0     = parameters[1];
  fTOT    = parameters[2];
  fCharge = parameters[3];
- fCal    = parameters[4];
+ fPE     = parameters[4];
  
  return;
 }
@@ -64,7 +64,7 @@ void DDSignal::Clear(void){
  fT0     = -100.;
  fTOT    = -100.;
  fCharge = -100.;
- fCal    = -100.; 
+ fPE     = -100.; 
  return;
 }
 //------------------------------------------------------------------
@@ -76,7 +76,7 @@ void DDSignal::Print(void){
   std::cout << "T0 = " << fT0 << " ns" << std::endl;
   std::cout << "Time over threshold = " << fTOT << " ns" << std::endl;
   std::cout << "Charge (signal integral) = " << fCharge << std::endl;
-  std::cout << "Calibrated charge = " << fCal << " P.E. / keV" << std::endl;
+  std::cout << "Calibrated charge = " << fPE << " P.E. / keV" << std::endl;
   std::cout << "------------------------------------------------\n" << std::endl;
   return;
 }
