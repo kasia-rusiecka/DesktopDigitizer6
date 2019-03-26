@@ -14,6 +14,8 @@
 #include "TTree.h"
 #include "TFile.h"
 #include "TString.h"
+#include "TMath.h"
+#include "TH1F.h"
 #include "DDSignal.hh"
 #include <iostream>
 #include <fstream>
@@ -95,6 +97,9 @@ private:
   Int_t    fTime[1024];             ///< Table containing time for each sample of the signal
   
   const Int_t gNS = 1024;           ///< Number of samples in one signal
+  const Int_t gBL = 50;             ///< Number of samples for base line determination
+  const Double_t gmV = 4.096;       ///< Factor for ADC to voltage calibration    
+  TH1F *hRMS;
   
 public:
   DDTreeMaker();
@@ -110,6 +115,7 @@ public:
   Float_t FindTOT(Int_t index, Float_t amplitude, Float_t t0, TString mode);
   Float_t FindCharge(Float_t t0, Float_t tot);
   Float_t CalibrateCharge(Int_t index, Float_t charge);
+  bool    FindFlag(void);
   void    Print(void);
 
   ClassDef(DDTreeMaker,1)

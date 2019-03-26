@@ -122,7 +122,7 @@ Bool_t DDTreeMaker::ReadConfig(void){
      for(Int_t i=0; i<fNch; i++){
       fCalib.push_back(Calibration());
       config >> fChannels[i] >> fThresholds[i] >> fFractions[i] >> fCalib[i].fCalibMethod;
-      fThresholds[i] = fThresholds[i]/4.096;   // recalculating from ADC channels to mV
+      fThresholds[i] = fThresholds[i]/gmV;   // recalculating from ADC channels to mV
       if(fCalib[i].fCalibMethod=="PE"){     ///- calib factor for PE calibration
         config >> fCalib[i].fCalibPE;
       }
@@ -264,22 +264,26 @@ bool DDTreeMaker::AnalyzeChannel(Int_t index, TString mode){
     
   Double_t BL;     //base line  
   Float_t amplitude, t0, tot, charge, calibrated;
+  bool flag;
    
+  TString name = Form("hRMS_%i",index)+std::string("_")+mode;
+  hRMS = new TH1F(name,name,100,0,25);
+  
   //reading input files
   while(input.good()){
     
     for(Int_t ii=0; ii<gNS; ii++){     //loop over samples in one signal
       if(fCoding=="binary") input.read((char*)&x, sizeof x);
       else input >> x;
-      fSamples[ii] = x/4.096;   //recalculating from ADC channels to mV
-      fTime[ii] = ii;           //for 1GHz sampling: 1 sample = 1 ns
+      fSamples[ii] = x/gmV;   //recalculating from ADC channels to mV
+      fTime[ii] = ii;         //for 1GHz sampling: 1 sample = 1 ns
     }
     
     BL = 0.;
-    for(Int_t i=0; i<50; i++){     //base line determination
+    for(Int_t i=0; i<gBL; i++){     //base line determination
      BL+=fSamples[i];
     }
-    BL=BL/50.;
+    BL=BL/gBL;
     
     for(Int_t i=0; i<gNS; i++){     //base line subtraction
      fSamples[i]=fSamples[i]-BL;
@@ -301,11 +305,16 @@ bool DDTreeMaker::AnalyzeChannel(Int_t index, TString mode){
     calibrated = CalibrateCharge(index, charge);
     fSignal[index]->SetPE(calibrated);
     
+    flag = FindFlag();
+    fSignal[index]->SetFlag(flag);
+    
     fBranch[index]->Fill();
   }
 
   input.close();
 
+  hRMS->SaveAs(name+std::string(".root"));
+  
   return true;
 }
 //------------------------------------------------------------------
@@ -511,6 +520,20 @@ Float_t DDTreeMaker::CalibrateCharge(Int_t index, Float_t charge){
   }
   
   return calibrated;
+}
+//------------------------------------------------------------------
+bool DDTreeMaker::FindFlag(void){
+  
+  bool      flag = 0;
+  double    temp[gBL];
+  for(int i=0; i<gBL; i++){
+      temp[i]=fSamples[i];
+  }
+  double rms = TMath::RMS(gBL,temp);
+  hRMS->Fill(rms);
+  if(rms>0.5) flag = 0;
+  else flag = 1;
+  return flag;
 }
 //------------------------------------------------------------------
 /// Prints details of the DDTreeMaker class object.

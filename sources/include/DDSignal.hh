@@ -25,10 +25,12 @@ public:
   Float_t fTOT;		///< Time over threshold [ns]
   Float_t fCharge;	///< Uncalibrated charge [a.u.]
   Float_t fPE;		///< Calibrated charge [P.E.] or [keV]
+  bool  fFlag;      ///< Flag to identify whether signal is correct
+                    ///< 1 - correct signal | 0 - incorrect
   
 public:
   DDSignal();
-  DDSignal(Float_t amp, Float_t t0, Float_t tot, Float_t charge, Float_t cal);
+  DDSignal(Float_t amp, Float_t t0, Float_t tot, Float_t charge, Float_t cal, bool flag);
   ~DDSignal();
   
   /// Sets signal amplitude in mV
@@ -41,6 +43,8 @@ public:
   void SetCharge(Float_t charge){ fCharge = charge; };
   /// Sets value of charge calibrated to PE or keV
   void SetPE(Float_t cal){ fPE = cal; };
+  /// Sets signal flag
+  void SetFlag(bool flag){ fFlag = flag; };
   /// Returns signal amplitude in mV
   Float_t GetAmplitude(void){ return fAmp; };
   /// Returns time T0 in ns
@@ -51,6 +55,8 @@ public:
   Float_t GetCharge(void){ return fCharge; };
   /// Returns value of calibrated charge in PE or keV
   Float_t GetPE(void){ return fPE; };
+  /// Returns signal flag
+  bool GetFlag(void){ return fFlag; };
   
   void SetAll(std::vector <Float_t> parameters);
   void Clear(void);
