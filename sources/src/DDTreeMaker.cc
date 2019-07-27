@@ -328,6 +328,9 @@ Float_t DDTreeMaker::FindAmplitude(void){
    }
   }
  
+  if(fPolarity=="NEGATIVE")
+      amplitude=-amplitude;
+  
   return amplitude;
 }
 //------------------------------------------------------------------
@@ -489,7 +492,10 @@ Float_t DDTreeMaker::FindCharge(Float_t t0, Float_t tot){
    }
   }
   
-  charge = sum;
+  if(fPolarity=="POSITIVE")
+    charge = sum;
+  else if(fPolarity=="NEGATIVE")
+    charge = -sum;
   
   return charge;
 }

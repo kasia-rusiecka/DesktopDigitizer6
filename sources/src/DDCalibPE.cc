@@ -126,8 +126,8 @@ bool DDCalibPE::Calibrate(TTree* tree, Int_t ch, TFile* file){
   std::cout << "\n\n---------- Fit results:" << std::endl;
   std::cout << "Gauss fit Chi2/NDF = " << fun->GetChisquare()/fun->GetNDF() << std::endl;
   std::cout << "Linear fit: Chi2/NDF = " << fpol1->GetChisquare()/fpol1->GetNDF() << std::endl;
-  std::cout << "Fitted callibration factor for channel " << ch << " = " << fpol1->GetParameter(1) 
-       << " + /- " << fpol1->GetParError(1) << std::endl;
+  std::cout << "Fitted callibration factor for channel " << ch << " = " << fpol1->GetParameter(1) << " + /- " << fpol1->GetParError(1) << std::endl;
+  std::cout << "Offset = " << fpol1->GetParameter(0) << " +/- " << fpol1->GetParError(0) << std::endl;
   std::cout << "Calculated callibration factor for channel " << ch << " = " << calibFactor << std::endl;
   std::cout << "---------------------------\n" << std::endl;
   
