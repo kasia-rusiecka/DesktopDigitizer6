@@ -337,6 +337,9 @@ Float_t DDTreeMaker::FindAmplitude(void){
    }
   }
  
+  if(fPolarity=="NEGATIVE")
+      amplitude = -amplitude;
+ 
   return amplitude;
 }
 //------------------------------------------------------------------
@@ -498,7 +501,10 @@ Float_t DDTreeMaker::FindCharge(Float_t t0, Float_t tot){
    }
   }
   
-  charge = sum;
+  if(fPolarity=="NEGATIVE")
+      charge = -sum;
+  else if(fPolarity=="POSITIVE")
+      charge = sum;
   
   return charge;
 }
@@ -522,6 +528,12 @@ Float_t DDTreeMaker::CalibrateCharge(Int_t index, Float_t charge){
   return calibrated;
 }
 //------------------------------------------------------------------
+/// Returns flag for correct signals. If RMS calculated from the first
+/// 50 samples of the signal (base line) is smaller than 0.5, signal is
+/// marksed as correct and flag TRUE (1) is returned. Otherwise signal 
+/// is marked as incorrect (FLASE/0). In that case base line was interrupted
+/// by accidental signal registered or tail of earlier signal. This flag
+/// is useful if data from LuAG measurements is analyzed. 
 bool DDTreeMaker::FindFlag(void){
   
   bool      flag = 0;
