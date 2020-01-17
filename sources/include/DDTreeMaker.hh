@@ -103,6 +103,7 @@ public:
   
   bool    ReadConfig(void);
   bool    FindCoding(void);
+  Int_t   GetNentries(void);
   bool    MakeTree(void);
   bool    AnalyzeChannel(Int_t channel, TString mode);
   Float_t FindAmplitude(void);

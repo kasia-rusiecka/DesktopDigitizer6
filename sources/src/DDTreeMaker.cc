@@ -173,6 +173,49 @@ bool DDTreeMaker::FindCoding(void){
   return true;
 }
 //------------------------------------------------------------------
+/// Counts entries in the binary file recorded in the measurement. 
+/// Returned number is subsequently compared with the number of entires 
+/// in the TTree's branch to ensure correct structure and compression. 
+Int_t DDTreeMaker::GetNentries(void){
+   
+  std::ifstream input;  
+  TString fname;
+  
+  //opening input files 
+  if(fCoding=="binary"){
+    fname = fPath+Form("wave_%i.dat", fChannels[0]);
+    input.open(fname, std::ios::binary);
+  }
+  else if(fCoding=="ascii"){
+    fname = fPath+Form("wave_%i.txt", fChannels[0]);
+    input.open(fname);
+  }
+    
+  //checking if input files are correctly opened
+  if(!input.is_open()){
+   std::cerr << "##### Error in DDTreeMaker::AnalyzeChannel! Could not open input file!" << std::endl;
+   std::cerr << fname << std::endl;
+   return false;
+  }
+  
+  Int_t ilines = 0;
+  Float_t x;
+  
+  while(true){
+    if(fCoding=="binary")
+      input.read((char*)&x, sizeof x);
+    else
+      input >> x;
+    ilines++;
+    if(input.eof())
+      break;  
+  }
+  
+  input.close();
+  Int_t nentries = ilines/gNS;
+  return nentries;  
+}
+//------------------------------------------------------------------
 /// Creates requested trees, according to information from the configuration file:
 /// "tree_ft" for Fixed Threshold analysis and "tree_cf" for Constant Fraction 
 /// analysis. Sets addresses of respective branches. Each branch represents one 
@@ -181,7 +224,7 @@ bool DDTreeMaker::FindCoding(void){
 bool DDTreeMaker::MakeTree(void){
   
   TString bname;
-  Int_t entries = 0;     //number of entries in the tree
+  Int_t entries = GetNentries();     //number of entries in the tree
   
   fBranch.resize(fNch);
   
@@ -196,7 +239,14 @@ bool DDTreeMaker::MakeTree(void){
       AnalyzeChannel(i,"FT");     // tree filling
     }
   
-    entries = fBranch[0]->GetEntries();
+    Int_t entries_branch = fBranch[0]->GetEntries();
+    
+    if(entries != entries_branch){
+      std::cerr << "##### Warning in DDTreeMaker::MakeTree()" << std::endl;
+      std::cerr << "Different number of entries in file and branch!" << std::endl;
+      std::cerr << "file: " << entries << "\t branch: " << entries_branch << std::endl;
+    }
+    
     fTreeFT->SetEntries(entries);
     fFile->cd();
     fTreeFT->Write();
@@ -214,7 +264,14 @@ bool DDTreeMaker::MakeTree(void){
       AnalyzeChannel(i,"CF");     // tree filling
     }
   
-    entries = fBranch[0]->GetEntries();
+    Int_t entries_branch = fBranch[0]->GetEntries();
+    
+    if(entries != entries_branch){
+      std::cerr << "##### Warning in DDTreeMaker::MakeTree()" << std::endl;
+      std::cerr << "Different number of entries in file and branch!" << std::endl;
+      std::cerr << "file: " << entries << "\t branch: " << entries_branch << std::endl;
+    }
+  
     fTreeCF->SetEntries(entries);
     fFile->cd();
     fTreeCF->Write();
@@ -264,16 +321,23 @@ bool DDTreeMaker::AnalyzeChannel(Int_t index, TString mode){
     
   Double_t BL;     //base line  
   Float_t amplitude, t0, tot, charge, calibrated;
-   
+  Bool_t flag = true; 
+  
   //reading input files
-  while(input.good()){
-    
+  while(true){
+      
     for(Int_t ii=0; ii<gNS; ii++){     //loop over samples in one signal
       if(fCoding=="binary") input.read((char*)&x, sizeof x);
       else input >> x;
       fSamples[ii] = x/4.096;   //recalculating from ADC channels to mV
       fTime[ii] = ii;           //for 1GHz sampling: 1 sample = 1 ns
+      flag = input.eof();
+      if(flag)
+         break;
     }
+    
+    if(flag)
+        break;
     
     BL = 0.;
     for(Int_t i=0; i<50; i++){     //base line determination
