@@ -9,6 +9,7 @@
 // *****************************************
 
 #include "DDSignal.hh"
+#include <cmath>
 
 ClassImp(DDSignal);
 
@@ -18,7 +19,8 @@ DDSignal::DDSignal() : fAmp(-100),
                        fT0(-100),
                        fTOT(-100),
                        fCharge(-100),
-                       fPE(-100) {}
+                       fPE(-100),
+                       fVeto(0) {}
 //------------------------------------------------------------------
 /// Standard constructor.
 /// \param amp - signal amplitude [mV]
@@ -26,12 +28,13 @@ DDSignal::DDSignal() : fAmp(-100),
 /// \param tot - time over threshold [mV]
 /// \param charge - signal integral (uncalibrated charge) [a.u.]
 /// \param cal - calibrated charge [PE] or [keV]
-DDSignal::DDSignal(Float_t amp, Float_t t0, Float_t tot, Float_t charge, Float_t cal) : 
+DDSignal::DDSignal(Float_t amp, Float_t t0, Float_t tot, Float_t charge, Float_t cal, Int_t veto) : 
                    fAmp(amp),
                    fT0(t0),
                    fTOT(tot),
                    fCharge(charge),
-                   fPE(cal) {}
+                   fPE(cal),
+                   fVeto(veto) {}
 //------------------------------------------------------------------
 /// Default destructor.
 DDSignal::~DDSignal(){
@@ -43,9 +46,9 @@ DDSignal::~DDSignal(){
 void DDSignal::SetAll(std::vector <Float_t> parameters){
   
  std::size_t i = parameters.size();
- if(i!=5){
+ if(i!=6){
    std::cerr << "##### Error in DDSignalEnergy::SetAll()" << std::endl;
-   std::cerr << "Not sufficient number of parameters! Expected 5 parameters!" << std::endl;
+   std::cerr << "Not sufficient number of parameters! Expected 6 parameters!" << std::endl;
    abort();
  }
  
@@ -54,6 +57,11 @@ void DDSignal::SetAll(std::vector <Float_t> parameters){
  fTOT    = parameters[2];
  fCharge = parameters[3];
  fPE     = parameters[4];
+ 
+ if(fabs(parameters[5])<1E-8)
+     fVeto = 0;
+ else 
+     fVeto = 1;
  
  return;
 }
@@ -65,6 +73,7 @@ void DDSignal::Clear(void){
  fTOT    = -100.;
  fCharge = -100.;
  fPE     = -100.; 
+ fVeto   = 0;
  return;
 }
 //------------------------------------------------------------------
@@ -77,6 +86,7 @@ void DDSignal::Print(void){
   std::cout << "Time over threshold = " << fTOT << " ns" << std::endl;
   std::cout << "Charge (signal integral) = " << fCharge << std::endl;
   std::cout << "Calibrated charge = " << fPE << " P.E. / keV" << std::endl;
+  std::cout << "Veto flag: " << fVeto << std::endl;
   std::cout << "------------------------------------------------\n" << std::endl;
   return;
 }

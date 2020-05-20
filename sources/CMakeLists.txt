@@ -25,7 +25,7 @@ file(GLOB headers ${PROJECT_SOURCE_DIR}/include/*.hh)
 
 #---Define useful ROOT functions and macros (e.g. ROOT_GENERATE_DICTIONARY)
 include(${ROOT_USE_FILE})
-include_directories(${CMAKE_CURRENT_SOURCE_DIR}/include)
+include_directories(BEFORE ${CMAKE_SOURCE_DIR}/include)
 ROOT_GENERATE_DICTIONARY(G__DesktopDigitizer6 ${headers} LINKDEF digitLinkDef.h)
 
 

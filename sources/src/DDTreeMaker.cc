@@ -321,6 +321,8 @@ bool DDTreeMaker::AnalyzeChannel(Int_t index, TString mode){
     
   Double_t BL;     //base line  
   Float_t amplitude, t0, tot, charge, calibrated;
+  Int_t veto = 0;
+  Int_t counter = 0;
   Bool_t flag = true; 
   
   //reading input files
@@ -353,6 +355,15 @@ bool DDTreeMaker::AnalyzeChannel(Int_t index, TString mode){
     amplitude = FindAmplitude();
     fSignal[index]->SetAmplitude(amplitude);
     
+    veto = CheckVeto();
+    fSignal[index]->SetVeto(veto);
+
+    if(veto==1)
+        counter++;
+    
+    if(veto != fSignal[index]->GetVeto())
+        std::cout << "problem!" << std::endl;
+    
     t0 = FindT0(index, amplitude, mode);
     fSignal[index]->SetT0(t0);
     
@@ -369,7 +380,8 @@ bool DDTreeMaker::AnalyzeChannel(Int_t index, TString mode){
   }
 
   input.close();
-
+  std::cout << index << "\t" << counter << std::endl;
+  
   return true;
 }
 //------------------------------------------------------------------
@@ -396,6 +408,26 @@ Float_t DDTreeMaker::FindAmplitude(void){
       amplitude=-amplitude;
   
   return amplitude;
+}
+//------------------------------------------------------------------
+Int_t DDTreeMaker::CheckVeto(Float_t veto_threshold){
+
+  if(fPolarity=="NEGATIVE"){
+   for(Int_t i=0; i<gNS; i++){
+    if(fSamples[i]>veto_threshold){ 
+        return 1;
+    }
+   }
+  }
+  else if(fPolarity=="POSITIVE"){
+   for(Int_t i=0; i<gNS; i++){
+    if(fSamples[i]<-veto_threshold){
+        return 1;
+    }
+   }
+  }
+ 
+  return 0;
 }
 //------------------------------------------------------------------
 /// Finds time T0 of the analyzed signal: 
@@ -547,11 +579,17 @@ Float_t DDTreeMaker::FindCharge(Float_t t0, Float_t tot){
   
   if(t0==-100) return charge;
   
-  if(fIntegrationMode=="LIMIT") tmax = t0+fLimit;
+  if(fIntegrationMode=="LIMIT"){
+      tmax = t0+fLimit;
+      if(tmax>1024)
+          tmax = 1024;
+  }
   else if(fIntegrationMode=="TOT") tmax = t0+tot;
   
+  t0 = t0-20.;
+  
   for(Int_t i=0; i<gNS; i++){
-   if(fTime[i]>t0 && fTime[i]<tmax){
+   if(fTime[i]>=t0 && fTime[i]<=tmax){
      sum += fSamples[i];
    }
   }

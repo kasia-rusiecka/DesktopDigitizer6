@@ -20,6 +20,7 @@
 class DDSignal : public TObject{
   
 public:
+  Int_t fVeto;      ///<
   Float_t fAmp;		///< Amplitude [mV]
   Float_t fT0;		///< Time T0 [ns] 
   Float_t fTOT;		///< Time over threshold [ns]
@@ -28,7 +29,7 @@ public:
   
 public:
   DDSignal();
-  DDSignal(Float_t amp, Float_t t0, Float_t tot, Float_t charge, Float_t cal);
+  DDSignal(Float_t amp, Float_t t0, Float_t tot, Float_t charge, Float_t cal, Int_t veto);
   ~DDSignal();
   
   /// Sets signal amplitude in mV
@@ -42,6 +43,7 @@ public:
   /// Sets value of charge calibrated to PE or keV
   void SetPE(Float_t cal){ fPE = cal; };
   /// Returns signal amplitude in mV
+  void SetVeto(Int_t veto){ fVeto = veto; };
   Float_t GetAmplitude(void){ return fAmp; };
   /// Returns time T0 in ns
   Float_t GetT0(void){ return fT0; };
@@ -51,6 +53,7 @@ public:
   Float_t GetCharge(void){ return fCharge; };
   /// Returns value of calibrated charge in PE or keV
   Float_t GetPE(void){ return fPE; };
+  Int_t GetVeto(void){ return fVeto; };
   
   void SetAll(std::vector <Float_t> parameters);
   void Clear(void);

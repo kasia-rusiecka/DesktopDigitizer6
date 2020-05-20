@@ -111,6 +111,7 @@ public:
   Float_t FindTOT(Int_t index, Float_t amplitude, Float_t t0, TString mode);
   Float_t FindCharge(Float_t t0, Float_t tot);
   Float_t CalibrateCharge(Int_t index, Float_t charge);
+  Int_t   CheckVeto(Float_t veto_threshold = 10.);
   void    Print(void);
 
   ClassDef(DDTreeMaker,1)
