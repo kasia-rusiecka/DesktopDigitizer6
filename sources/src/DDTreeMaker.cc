@@ -324,6 +324,7 @@ bool DDTreeMaker::AnalyzeChannel(Int_t index, TString mode){
   Int_t veto = 0;
   Int_t counter = 0;
   Bool_t flag = true; 
+  Float_t tmax;
   
   //reading input files
   while(true){
@@ -375,6 +376,9 @@ bool DDTreeMaker::AnalyzeChannel(Int_t index, TString mode){
     
     calibrated = CalibrateCharge(index, charge);
     fSignal[index]->SetPE(calibrated);
+    
+    tmax = FindTmax(amplitude);
+    fSignal[index]->fTmax = tmax;
     
     fBranch[index]->Fill();
   }
@@ -561,6 +565,19 @@ Float_t DDTreeMaker::FindTOT(Int_t index, Float_t amplitude, Float_t t0, TString
   
   return tot;
 }
+//-------------------------------------------------------------------------
+Float_t DDTreeMaker::FindTmax(Float_t amplitude){
+  
+  Float_t tmax = -100;
+
+  for(int i=0; i<gNS; i++){
+      if(fabs(fabs(fSamples[i])-amplitude)<1E-8)
+          tmax = fTime[i];
+  }
+  
+  return tmax;
+}
+//------------------------------------------------------------------
 //------------------------------------------------------------------
 /// Returns integral of the analyzed signal. Signal integration starts 
 /// at time T0 and depending on the chosen integration mode stops:

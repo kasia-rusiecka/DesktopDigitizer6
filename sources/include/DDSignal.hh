@@ -26,6 +26,7 @@ public:
   Float_t fTOT;		///< Time over threshold [ns]
   Float_t fCharge;	///< Uncalibrated charge [a.u.]
   Float_t fPE;		///< Calibrated charge [P.E.] or [keV]
+  Float_t fTmax;
   
 public:
   DDSignal();
